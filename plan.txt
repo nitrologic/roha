@@ -1,0 +1,5 @@
+A 2025 Q2 roadmap for roha command line client
+
+names for shares
+avoid mulitple shares of same path in addShare
+account selection

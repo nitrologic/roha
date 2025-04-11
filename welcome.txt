@@ -1,0 +1,13 @@
+  o---/\     /---o     \---/     /---/\     o---/\     \---o     /---/\     o---/\     /---o
+  |    \/   /    |     |    /   /    \/    |    \/   /    |     |    \/   /    |     |    \/
+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+#
+
+	WELCOME TO ROHA
+
+	THE MAGIC WORD IS FISH
+
+	THIS FILE PART OF ROHA CLIENT DISTRIBUTION
+
+	A COMMAND LINE TOOL FOR CHATTING AND SHARING FILES
+
+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+# #+#+#
