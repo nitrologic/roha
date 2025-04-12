@@ -82,7 +82,7 @@ const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
 const emptyRoha={
-	config:{commitonstart:true},
+	config:{commitonstart:true,ansi:true},
 	saves:[],
 	tags:{},
 	sharedFiles:[]
@@ -325,10 +325,12 @@ function resolvePath(dir,filename){
 
 let shareCount=0;
 
-function addShare(share){
+// callers to addShare expected to await writeRoha after
+
+async function addShare(share){
 	share.id="share"+(shareCount++);
 	roha.sharedFiles.push(share);
-	if(share.tag) setTag(share.tag,share.id);
+	if(share.tag) await setTag(share.tag,share.id);
 }
 
 async function shareDir(dir,tag) {
@@ -346,8 +348,9 @@ async function shareDir(dir,tag) {
 			let size=info.size;
 			let modified=info.mtime.getTime();
 			const hash = await hashFile(path);
-			addShare({path,size,modified,hash,tag})			
+			await addShare({path,size,modified,hash,tag})			
 		}
+		await writeRoha(); // TODO: check a dirty flag
 	} catch (error) {
 		console.error("### Error"+error);
 	}
@@ -496,7 +499,10 @@ async function callCommand(command) {
 						await writeRoha();
 					}
 				}else{
-					echo("config:"+JSON.stringify(roha.config));
+//					echo("config:"+JSON.stringify(roha.config));
+					for(let flag in flagNames){
+						echo(flag,":",flagNames[flag],":",(roha.config[flag]?"true":"false"))
+					}
 				}
 				break;
 			case "time":
@@ -547,7 +553,7 @@ async function callCommand(command) {
 			case "reset":
 				rohaShares = [];
 				roha.sharedFiles=[];
-				roha.tags=[];
+				roha.tags={};
 				await writeRoha();
 				resetHistory();
 				echo("All shares and history reset.");
@@ -582,7 +588,7 @@ async function callCommand(command) {
 						echo("Share file path:",path," size:",info.size," ");
 						const hash = await hashFile(path);
 						echo("hash:",hash);
-						addShare({path,size,modified,hash,tag});
+						await addShare({path,size,modified,hash,tag});
 					}
 					await writeRoha();
 				}else{
