@@ -9,6 +9,21 @@ import { exists } from "https://deno.land/std/fs/exists.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import OpenAI from "https://deno.land/x/openai@v4.67.2/mod.ts";
 
+const rohaTools = [{
+	type: "function",
+	function:{
+		name: "get_current_time",
+		description: "Returns current time in UTC",
+		parameters: {
+			type: "object",
+			properties: {},
+			required: []
+		}
+	}
+}];
+
+let rohaCalls=0;
+
 const rohaTitle="nitrologic chat client";
 
 const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
@@ -599,9 +614,79 @@ if(roha.config){
 	roha.config={};
 }
 
-async function relay(){
+async function onCall(toolCall) {
+	switch(toolCall.function.name) {
+		case "get_current_time":
+			return {time: new Date().toISOString()};
+	}
+}
+
+async function relay() {
+    try {
+        const payload = { model: grokModel, messages: grokHistory, tools: rohaTools };
+        const completion = await grok.chat.completions.create(payload);
+        if (completion.model != grokModel) {
+            echo("[relay model alert model:" + completion.model + " grokModel:" + grokModel + "]");
+        }
+        if (verbose) {
+            // echo("relay completion:" + JSON.stringify(completion, null, "\t"));
+        }
+        let usage = completion.usage;
+        let size = measure(grokHistory);
+        grokUsage += usage.prompt_tokens | 0 + usage.completion_tokens | 0;
+        let status = "[model " + grokModel + " " + usage.prompt_tokens + " " + usage.completion_tokens + " " + grokUsage + " " + size + "]";
+        echo(status);
+        var reply = "<blank>";
+        for (const choice of completion.choices) {
+            let calls = choice.message.tool_calls;
+            if (calls) {
+                // Generate tool_calls with simple, unique IDs
+                const toolCalls = calls.map((tool, index) => ({
+                    id: `call_${rohaCalls++}`,
+                    type: "function",
+                    function: {
+                        name: tool.function.name,
+                        arguments: tool.function.arguments || "{}"
+                    }
+                }));
+                // Add assistant message with tool_calls
+                grokHistory.push({
+                    role: "assistant",
+                    content: choice.message.content || null,
+                    tool_calls: toolCalls
+                });
+                // Add tool responses
+                for (let i = 0; i < calls.length; i++) {
+                    const tool = calls[i];
+                    const result = await onCall(tool);
+                    grokHistory.push({
+                        role: "tool",
+                        tool_call_id: toolCalls[i].id,
+                        name: tool.function.name,
+                        content: JSON.stringify(result)
+                    });
+                }
+                return relay(); // Recursive call to process tool results
+            }
+            reply = choice.message.content;
+            if (roha.config && roha.config.ansi) {
+                echo(ansiSaveCursor);
+                echo(mdToAnsi(reply));
+                echo(ansiRestoreCursor);
+            } else {
+                echo(wordWrap(reply));
+            }
+        }
+        grokHistory.push({ role: "assistant", content: reply });
+    } catch (error) {
+        console.error("Error during API call:", error);
+    }
+}
+
+async function relay3(){
 	try{
-		const completion = await grok.chat.completions.create({model:grokModel,messages:grokHistory,});
+		const payload = {model:grokModel,messages:grokHistory,tools:rohaTools};
+		const completion = await grok.chat.completions.create(payload);
 		if (completion.model!=grokModel){
 			echo("[relay model alert model:"+completion.model+" grokModel:"+grokModel+"]");
 		}
@@ -615,6 +700,33 @@ async function relay(){
 		echo(status);
 		var reply = "<blank>";
 		for(const choice of completion.choices){
+			let calls=choice.message.tool_calls;
+			if(calls){
+				for(let tool of calls){
+					let id="call"+(rohaCalls++);
+					const toolCalls = calls.map(tool => ({
+						id: `call_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+						type: "function",
+						function: {
+							name: tool.function.name,
+							arguments: tool.function.arguments || "{}"
+						}
+					}));
+					grokHistory.push({
+						role: "assistant",
+						content: choice.message.content || null,
+						tool_calls: toolCalls
+					});
+					const result = await onCall(tool);
+					grokHistory.push({
+						role: "tool", 
+						tool_call_id: id,
+						name: tool.function.name,
+						content: JSON.stringify(result)
+					});
+				}
+				return relay();
+			}
 			reply = choice.message.content;
 			if(roha.config&&roha.config.ansi){
 				echo(ansiSaveCursor);
@@ -622,7 +734,6 @@ async function relay(){
 				echo(ansiRestoreCursor);
 			}else{
 				echo(wordWrap(reply));
-
 			}
 		}
 		grokHistory.push({ role: "assistant", content: reply });
