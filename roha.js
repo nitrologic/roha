@@ -247,7 +247,7 @@ async function hashFile(filePath) {
 
 const fileExists = await exists(rohaPath);
 if (!fileExists) {
-	await Deno.writeTextFile(rohaPath, JSON.stringify([]));
+	await Deno.writeTextFile(rohaPath, JSON.stringify({shares:[],sharedFiles:[]}));
 	echo("Created a new roha.json");
 }
 
