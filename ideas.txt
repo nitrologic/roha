@@ -1,3 +1,1 @@
-Features under consideration for roha client.
-
-auto dumping at start up option
+a code command that lists previous code blocks by name and puts them in copy buffer

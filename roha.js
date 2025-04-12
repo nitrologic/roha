@@ -186,6 +186,10 @@ const ansiBackgrounds = [
 	{ name: "deepGray", code: "\x1b[48;5;240m" } // #585858
 ];
 
+const ansiMoveToEnd = "\x1b[999B";
+const ansiSaveCursor = "\x1b[s";
+const ansiRestoreCursor = "\x1b[u";
+
 const ansiReplyBlock = ansiBackgrounds[0].code;
 const ansiCodeBlock = ansiBackgrounds[6].code;
 
@@ -194,6 +198,8 @@ const rohaPrompt=">";
 const ansiItalics = "\x1b[3m";
 const ansiReset = "\x1b[0m";
 const ansiPurple = "\x1b[1;35m";
+
+
 function mdToAnsi(md) {
 	const lines = md.split("\n");
 	let inCode = false;
@@ -488,17 +494,29 @@ async function relay(){
 		var reply = "<blank>";
 		for(const choice of completion.choices){
 			reply = choice.message.content;
-			echo(markdownEnabled?mdToAnsi(reply):wordWrap(reply));
+			if(markdownEnabled){
+				console.log(ansiSaveCursor);
+				echo(mdToAnsi(reply));
+				console.log(ansiRestoreCursor);
+			}else{
+				echo(wordWrap(reply));
+
+			}
 		}
 		grokHistory.push({ role: "assistant", content: reply });
 	} catch( error ){
 		console.error("Error during API call:", error);
 	}
 }
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function chat() {
 	dance:
 	while (true) {
 		let lines=[];
+		await sleep(500);
+		echo(ansiMoveToEnd);
 		while (true) {
 			const line = prompt(rohaPrompt);
 			if (line === '') break;
@@ -510,7 +528,7 @@ async function chat() {
 				const command = line.substring(1).trim();
 				let dirty=await callCommand(command);
 				if(dirty){
-					lines.push("ok");
+					lines.push("Please review any changes, thanks.");
 					break;
 				}
 				continue;
@@ -528,4 +546,3 @@ async function chat() {
 }
 
 chat();
-
