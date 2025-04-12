@@ -51,6 +51,12 @@ const MaxFileSize=65536;
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
+const emptyRoha={
+	config:{dumponstart:true},
+	shares:[],
+	sharedFiles:[],
+	saves:[]
+};
 const appDir = Deno.cwd();
 const rohaPath = resolve(appDir,"roha.json");
 const accountsPath = resolve(appDir,"accounts.json");
@@ -106,12 +112,12 @@ let grok = await connectModel("xai",true);
 //let grok = await connectModel("openai",true);
 let grokUsage = 0;
 
-let roha={sharedFiles:[],saves:[]};
+let roha=emptyRoha;
 //let sharedFiles=[];
 let shares=[];
 let currentDir = Deno.cwd();
 
-function dumpShares(){
+function listShares(){
 	let shares=roha.sharedFiles;
 	for(let i=0;i<shares.length;i++){
 		echo(i,shares[i].path);
@@ -119,7 +125,7 @@ function dumpShares(){
 }
 
 function listSaves(){
-	let saves=roha.saves;
+	let saves=roha.saves||[];
 	for(let i=0;i<saves.length;i++){
 		echo(i,saves[i]);
 	}
@@ -251,7 +257,7 @@ async function hashFile(filePath) {
 
 const fileExists = await exists(rohaPath);
 if (!fileExists) {
-	await Deno.writeTextFile(rohaPath, JSON.stringify({shares:[],sharedFiles:[]}));
+	await Deno.writeTextFile(rohaPath, JSON.stringify(emptytRoha));
 	echo("Created a new roha.json");
 }
 
@@ -259,10 +265,11 @@ async function readRoha(){
 	try {
 		const fileContent = await Deno.readTextFile(rohaPath);
 		roha = JSON.parse(fileContent);
-//		echo("Loaded sharedFiles:", sharedFiles);
+		if(!roha.shares) roha.shares=[];
+		if(!roha.saves) roha.saves=[];
 	} catch (error) {
 		console.error("Error reading or parsing roha.json:", error);
-		roha={sharedFiles:[]};
+		roha=emptyRoha;
 	}
 }
 
@@ -353,6 +360,26 @@ async function shareFile(path) {
 	}
 	if(verbose)echo("roha shared file " + path);
 	if (!shares.includes(path)) shares.push(path);
+}
+
+async function dumpShares(){
+	let dirty=false;
+	//				echo("dump:"+shares.join(" "));
+	for(let share of roha.sharedFiles){
+		const path = share.path;
+	//					echo("dump statting path:"+path+":"+JSON.stringify(share));
+		const info = await Deno.stat(path);
+		let modified=share.modified!=info.mtime.getTime();
+	//					if(modified)echo("modified",info.mtime.getTime(),share.modified);
+		let isShared=shares.includes(path);
+		if (modified || !isShared) {
+			shareFile(path);
+			share.modified=info.mtime.getTime();
+	//						manageHistory(path);
+			dirty=true;
+		}
+	}
+	return dirty;
 }
 
 function flatten(text){
@@ -450,25 +477,11 @@ async function callCommand(command) {
 					}
 					await writeRoha();
 				}else{
-					dumpShares();
+					listShares();
 				}
 				break;
 			case "dump":
-//				echo("dump:"+shares.join(" "));
-				for(let share of roha.sharedFiles){
-					const path = share.path;
-//					echo("dump statting path:"+path+":"+JSON.stringify(share));
-					const info = await Deno.stat(path);
-					let modified=share.modified!=info.mtime.getTime();
-//					if(modified)echo("modified",info.mtime.getTime(),share.modified);
-					let isShared=shares.includes(path);
-					if (modified || !isShared) {
-						shareFile(path);
-						share.modified=info.mtime.getTime();
-//						manageHistory(path);
-						dirty=true;
-					}
-				}
+				await dumpShares();
 				break;
 			default:
 				return false; // Command not recognized
@@ -485,6 +498,10 @@ echo("running from "+rohaPath);
 
 await readRoha();
 echo("shares count:",roha.sharedFiles.length)
+
+if(roha.config.dumponstart){
+	await dumpShares();
+}
 
 async function relay(){
 	try{
@@ -538,7 +555,7 @@ async function chat() {
 				const command = line.substring(1).trim();
 				let dirty=await callCommand(command);
 				if(dirty){
-					lines.push("Please review any changes, thanks.");
+					lines.push("Please review source for bugs and all content if notable changes detected, thanks.");
 					break;
 				}
 				continue;

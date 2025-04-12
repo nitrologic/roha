@@ -1,5 +1,7 @@
 roha roadmap
 
+sharedFiles [] => {}
+remove shares when file not found on stat
 history command
 names for shares
 avoid mulitple shares of same path in addShare
