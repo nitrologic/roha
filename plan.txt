@@ -1,11 +1,11 @@
 roha roadmap
 
+tags for shares
+auto dumping at start up option
 sharedFiles [] => {}
 remove shares when file not found on stat
-history command
-names for shares
+history command to manage history 
 avoid mulitple shares of same path in addShare
 account selection
 command auto complete 
 up down arrow key triggers
-auto dumping at start up option

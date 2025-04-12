@@ -9,6 +9,23 @@ import { exists } from "https://deno.land/std/fs/exists.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import OpenAI from "https://deno.land/x/openai@v4.67.2/mod.ts";
 
+const rohaTitle="nitrologic chat client";
+
+const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
+
+const flagNames={
+	dumponstart:"dump shares on start",
+	ansi:"Markdown ANSI rendering"
+};
+
+const textExtensions = [
+	"js", "txt", "json", "md",
+	"css","html", "svg",
+	"cpp", "c", "h", "cs",
+	"sh", "bat",
+	"log","py","csv","xml","ini"
+];
+
 const terminalColumns=80;
 
 var grokHistory;
@@ -43,8 +60,6 @@ function wordWrap(text,cols=terminalColumns){
 	return result.join("\n");
 }
 
-let markdownEnabled = true;
-
 let verbose=true;
 
 const MaxFileSize=65536;
@@ -53,7 +68,6 @@ const encoder = new TextEncoder();
 
 const emptyRoha={
 	config:{dumponstart:true},
-	shares:[],
 	sharedFiles:[],
 	saves:[]
 };
@@ -91,9 +105,9 @@ async function connectModel(name,silent) {
 			echo("endpoint:"+key+":"+content);
 		}
 	}
-	const models = await endpoint.models.list();                                                                                                                                           
-	for (const model of models.data) {                                                                                                                                                     
-		modelList.push(model.id);                                                                                                                                                 
+	const models = await endpoint.models.list();
+	for (const model of models.data) {
+		modelList.push(model.id);
 //		if(verbose) echo("model:"+JSON.stringify(model));
 	}
 	return endpoint;
@@ -105,22 +119,25 @@ function resetModel(name){
 
 // persistant model selection not quite there
 
-let grokModel = "grok-3-beta";
-let grok = await connectModel("xai",true);
+//let grokModel = "grok-3-beta";
+//let grok = await connectModel("xai",true);
 
-//let grokModel = "o3-mini-2025-01-31";
-//let grok = await connectModel("openai",true);
+let grokModel = "o3-mini-2025-01-31";
+let grok = await connectModel("openai",true);
+
 let grokUsage = 0;
 
 let roha=emptyRoha;
 //let sharedFiles=[];
-let shares=[];
+let rohaShares=[];
 let currentDir = Deno.cwd();
 
 function listShares(){
 	let shares=roha.sharedFiles;
 	for(let i=0;i<shares.length;i++){
-		echo(i,shares[i].path);
+		let line=shares[i].path;
+		if(shares[i].tag)line+=" ["+shares[i].tag+"]";
+		echo(i,line);
 	}
 }
 
@@ -132,7 +149,7 @@ function listSaves(){
 }
 
 function resetHistory(){
-	grokHistory = [{ role: "system", content: "You are a helpful assistant." }];
+	grokHistory = [{role:"system",content:rohaMihi}];
 }
 
 function manageHistory(path) {
@@ -257,7 +274,7 @@ async function hashFile(filePath) {
 
 const fileExists = await exists(rohaPath);
 if (!fileExists) {
-	await Deno.writeTextFile(rohaPath, JSON.stringify(emptytRoha));
+	await Deno.writeTextFile(rohaPath, JSON.stringify(emptyRoha));
 	echo("Created a new roha.json");
 }
 
@@ -265,7 +282,6 @@ async function readRoha(){
 	try {
 		const fileContent = await Deno.readTextFile(rohaPath);
 		roha = JSON.parse(fileContent);
-		if(!roha.shares) roha.shares=[];
 		if(!roha.saves) roha.saves=[];
 	} catch (error) {
 		console.error("Error reading or parsing roha.json:", error);
@@ -292,7 +308,7 @@ function addShare(share){
 	roha.sharedFiles.push(share);
 }
 
-async function shareDir(dir) {
+async function shareDir(dir,tag) {
 	try {
 		const paths=[];
 		const files = await Deno.readDir(dir);
@@ -307,7 +323,7 @@ async function shareDir(dir) {
 			let size=info.size;
 			let modified=info.mtime.getTime();
 			const hash = await hashFile(path);
-			addShare({path,size,modified,hash})
+			addShare({path,size,modified,hash,tag})
 		}
 	} catch (error) {
 		console.error("### Error"+error);
@@ -317,14 +333,6 @@ async function shareDir(dir) {
 function fileType(extension){
 	return contentType(extension) || 'application/octet-stream';
 }
-
-const textExtensions = [
-	"js", "txt", "json", "md",
-	"css","html", "svg",
-	"cpp", "c", "h", "cs",
-	"sh", "bat",
-	"log","py","csv","xml","ini"
-];
 
 async function shareFile(path) {
 	let fileContent=null;
@@ -359,28 +367,37 @@ async function shareFile(path) {
 		}
 	}
 	if(verbose)echo("roha shared file " + path);
-	if (!shares.includes(path)) shares.push(path);
+	if (!rohaShares.includes(path)) rohaShares.push(path);
 }
 
-async function dumpShares(){
+async function dumpShares(tag){
 	let dirty=false;
-	//				echo("dump:"+shares.join(" "));
 	for(let share of roha.sharedFiles){
+		if(tag&&share.tag!=tag) continue;
 		const path = share.path;
-	//					echo("dump statting path:"+path+":"+JSON.stringify(share));
+//		echo("dump statting path:"+path+":"+JSON.stringify(share));
 		const info = await Deno.stat(path);
 		let modified=share.modified!=info.mtime.getTime();
-	//					if(modified)echo("modified",info.mtime.getTime(),share.modified);
-		let isShared=shares.includes(path);
+//		if(modified)echo("modified",info.mtime.getTime(),share.modified);
+		let isShared=rohaShares.includes(path);
 		if (modified || !isShared) {
 			shareFile(path);
 			share.modified=info.mtime.getTime();
-	//						manageHistory(path);
+//			manageHistory(path);
 			dirty=true;
 		}
 	}
 	return dirty;
 }
+
+async function showHelp() {                                                                                                                                                       
+	try {                                                                                                                                                                              
+		const md = await Deno.readTextFile("roha.md");                                                                                                                                   
+		echo(mdToAnsi(md));                                                                                                                                                              
+	} catch (e) {                                                                                                                                                                      
+		echo("Error loading help file: " + e.message);                                                                                                                                   
+	}                                                                                                                                                                                  
+} 
 
 function flatten(text){
 	return text.replace(/\n/g, " ");
@@ -388,9 +405,27 @@ function flatten(text){
 
 async function callCommand(command) {
 	let dirty=false;
-	let words = command.split(" ",2);  
+	let words = command.split(" ",2);
 	try {
 		switch (words[0]) {
+			case "help":
+				await showHelp();
+				break;
+			case "config":
+				if(words.length>1){
+					const flag=words[1];
+					if(flag in flagNames){
+						roha.config[flag]=!roha.config[flag];
+						echo(flagNames[flag]+" is "+(roha.config[flag]?"true":"false"));
+						await writeRoha();
+					}
+				}else{
+					echo("config:"+JSON.stringify(roha.config));
+				}
+				break;
+			case "time":
+				echo("Current time:", new Date().toString());
+				break;
 			case "history":
 				let history=grokHistory;
 				let n=history.length;
@@ -399,10 +434,6 @@ async function callCommand(command) {
 					echo(i,history[i].role,content);
 				}
 				break;
-			case "ansi":
-				markdownEnabled = !markdownEnabled;
-				echo("Markdown ANSI rendering " + (markdownEnabled ? "enabled" : "disabled"));
-				break;	
 			case "load":
 				let save=words[1];
 				if(save){
@@ -438,7 +469,7 @@ async function callCommand(command) {
 				}
 				break;
 			case "reset":
-				shares = [];
+				rohaShares = [];
 				roha.sharedFiles=[];
 				await writeRoha();
 				resetHistory();
@@ -464,16 +495,17 @@ async function callCommand(command) {
 					const filename = words[1];
 					const path = resolvePath(Deno.cwd(), filename);
 					const info = await Deno.stat(path);
+					const tag = prompt("Enter tag name (optional):");                                                                                                                                    
 					if(info.isDirectory){
 						echo("Share directory path:",path);
-						await shareDir(path);
+						await shareDir(path,tag);
 					}else{
 						let size=info.size;
 						let modified=info.mtime.getTime();
 						echo("Share file path:",path," size:",info.size," ");
 						const hash = await hashFile(path);
 						echo("hash:",hash);
-						addShare({path,size,modified,hash});
+						addShare({path,size,modified,hash,tag});
 					}
 					await writeRoha();
 				}else{
@@ -481,7 +513,11 @@ async function callCommand(command) {
 				}
 				break;
 			case "dump":
-				await dumpShares();
+				let tag="";
+				if(words.length>1){
+					tag=words[1];
+				}
+				dirty=await dumpShares(tag);
 				break;
 			default:
 				return false; // Command not recognized
@@ -492,15 +528,17 @@ async function callCommand(command) {
 	return dirty;
 }
 
-echo("nitrologic chat client");
+echo(rohaTitle);
 echo("connected to "+grok.baseURL);
 echo("running from "+rohaPath);
 
 await readRoha();
 echo("shares count:",roha.sharedFiles.length)
 
-if(roha.config.dumponstart){
-	await dumpShares();
+if(roha.config){
+	if(roha.config.dumponstart) await dumpShares();
+}else{
+	roha.config={};
 }
 
 async function relay(){
@@ -516,15 +554,14 @@ async function relay(){
 		let size=measure(grokHistory);
 		grokUsage+=usage.prompt_tokens|0+usage.completion_tokens|0;
 		let status="[model "+grokModel+" "+usage.prompt_tokens+" "+usage.completion_tokens+" "+grokUsage+" "+size+"]";
-		console.log("status:"+status);
 		echo(status);
 		var reply = "<blank>";
 		for(const choice of completion.choices){
 			reply = choice.message.content;
-			if(markdownEnabled){
-				console.log(ansiSaveCursor);
+			if(roha.config&&roha.config.ansi){
+				echo(ansiSaveCursor);
 				echo(mdToAnsi(reply));
-				console.log(ansiRestoreCursor);
+				echo(ansiRestoreCursor);
 			}else{
 				echo(wordWrap(reply));
 
