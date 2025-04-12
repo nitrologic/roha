@@ -6,3 +6,5 @@ account selection
 command auto complete 
 up down arrow key triggers
 listen command for network use
+a code command that lists previous code blocks
+color codes for different languages

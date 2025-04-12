@@ -122,8 +122,11 @@ function resetModel(name){
 //let grokModel = "grok-3-beta";
 //let grok = await connectModel("xai",true);
 
-let grokModel = "o3-mini-2025-01-31";
-let grok = await connectModel("openai",true);
+let grokModel = "deepseek-chat";
+let grok = await connectModel("deepseek",true);
+
+//let grokModel = "o3-mini-2025-01-31";
+//let grok = await connectModel("openai",true);
 
 let grokUsage = 0;
 
@@ -155,7 +158,7 @@ function resetHistory(){
 function manageHistory(path) {
 	const indices = grokHistory
 		.map((entry, index) => (entry.content.includes(`path=${path},`) ? index : -1))
-		.filter(index => index !== -1);	
+		.filter(index => index !== -1);
 	//echo(`manageHistory Found ${indices.length} history entries for ${path}`);
 	for(let i=indices.length-3;i>=0;i--){
 		let index=indices[i];
@@ -186,9 +189,9 @@ async function loadHistory(filename){
 		history = JSON.parse(fileContent);
 		echo("History restored from "+filename);
 	} catch (error) {
-		console.error("Error restoring history:", error.message);		
+		console.error("Error restoring history:", error.message);
 		echo("console error");
-		history = [{ role: "system", content: "You are a helpful assistant."}];	
+		history = [{ role: "system", content: "You are a helpful assistant."}];
 	}
 	return history;
 }
@@ -370,21 +373,61 @@ async function shareFile(path) {
 	if (!rohaShares.includes(path)) rohaShares.push(path);
 }
 
-async function dumpShares(tag){
+async function dumpShares(tag) {
+	let dirty = false;
+	const validShares = [];
+	const removedPaths = [];
+
+	for (const share of roha.sharedFiles) {
+		if (tag && share.tag !== tag) {
+			validShares.push(share);
+			continue;
+		}
+
+		try {
+			const info = await Deno.stat(share.path);
+			const modified = share.modified !== info.mtime.getTime();
+			const isShared = rohaShares.includes(share.path);
+
+			if (modified || !isShared) {
+				await shareFile(share.path);
+				share.modified = info.mtime.getTime();
+				dirty = true;
+			}
+			validShares.push(share);
+		} catch (error) {
+			removedPaths.push(share.path);
+			dirty = true;
+		}
+	}
+
+	if (removedPaths.length) {
+		roha.sharedFiles = validShares;
+		await writeRoha();
+		echo(`Removed invalid shares:\n${removedPaths.join('\n')}`);
+	}
+
+	return dirty;
+}
+
+async function dumpShares2(tag){
 	let dirty=false;
+	let bad=[];
 	for(let share of roha.sharedFiles){
 		if(tag&&share.tag!=tag) continue;
 		const path = share.path;
-//		echo("dump statting path:"+path+":"+JSON.stringify(share));
-		const info = await Deno.stat(path);
-		let modified=share.modified!=info.mtime.getTime();
-//		if(modified)echo("modified",info.mtime.getTime(),share.modified);
-		let isShared=rohaShares.includes(path);
-		if (modified || !isShared) {
-			shareFile(path);
-			share.modified=info.mtime.getTime();
-//			manageHistory(path);
-			dirty=true;
+		try{
+			const info = await Deno.stat(path);
+			let modified=share.modified!=info.mtime.getTime();
+			let isShared=rohaShares.includes(path);
+			if (modified || !isShared) {
+				shareFile(path);
+				share.modified=info.mtime.getTime();
+//				manageHistory(path);
+				dirty=true;
+			}
+		}catch(error){
+			bad.push(share);
 		}
 	}
 	return dirty;
@@ -401,14 +444,14 @@ function listAccounts(){
 	}
 }
 
-async function showHelp() {                                                                                                                                                       
-	try {                                                                                                                                                                              
-		const md = await Deno.readTextFile("roha.md");                                                                                                                                   
-		echo(mdToAnsi(md));                                                                                                                                                              
-	} catch (e) {                                                                                                                                                                      
-		echo("Error loading help file: " + e.message);                                                                                                                                   
-	}                                                                                                                                                                                  
-} 
+async function showHelp() {
+	try {
+		const md = await Deno.readTextFile("roha.md");
+		echo(mdToAnsi(md));
+	} catch (e) {
+		echo("Error loading help file: " + e.message);
+	}
+}
 
 function flatten(text){
 	return text.replace(/\n/g, " ");
@@ -467,7 +510,7 @@ async function callCommand(command) {
 			case "model":
 				let name=words[1];
 				if(name){
-					if(!isNaN(name)) name=modelList[name|0];				
+					if(!isNaN(name)) name=modelList[name|0];
 					if(modelList.includes(name)){
 						resetModel(name);
 					}
@@ -509,7 +552,7 @@ async function callCommand(command) {
 					const filename = words[1];
 					const path = resolvePath(Deno.cwd(), filename);
 					const info = await Deno.stat(path);
-					const tag = prompt("Enter tag name (optional):");                                                                                                                                    
+					const tag = prompt("Enter tag name (optional):");
 					if(info.isDirectory){
 						echo("Share directory path:",path);
 						await shareDir(path,tag);

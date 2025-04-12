@@ -1,3 +1,84 @@
+a second crash from deepseek
+
+Error during API call: Error: 500 <html>
+<head><title>500 Internal Server Error</title></head>
+<body>
+<center><h1>500 Internal Server Error</h1></center>
+<hr><center>openresty</center>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92f25bdfbdff50c5',t:'MTc0NDQ1NzA4My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+    at Function.generate (https://deno.land/x/openai@v4.67.2/error.ts:105:14)
+    at OpenAI.makeStatusError (https://deno.land/x/openai@v4.67.2/core.ts:498:21)
+    at OpenAI.makeRequest (https://deno.land/x/openai@v4.67.2/core.ts:580:24)
+    at eventLoopTick (ext:core/01_core.js:175:7)
+    at async relay (file:///Users/simon/nitro/roha/roha.js:567:22)
+    at async chat (file:///Users/simon/nitro/roha/roha.js:627:5) {
+  status: 500,
+  headers: {
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "92f25bdfbdff50c5-AKL",
+    "content-type": "text/html",
+    date: "Sat, 12 Apr 2025 11:24:43 GMT",
+    server: "cloudflare",
+    "set-cookie": "__cf_bm=VT_9BXxMLvWXgsxJ4c6ZevaditDFWKMtqlmn1IAJS1Q-1744457083-1.0.1.1-yDsRuXfyHndVgWAE2zFRXgf5fRIB1.byuXuTW8LK9XUGEkNrb_S7OYiqTGKc2VwhXu4.f4FwIf4a_UbCvf9_D2pL6Ia85SH4o0XdryQliNw; path=/; expires=Sat, 12-Apr-25 11:54:43 GMT; domain=.deepseek.com; HttpOnly; Secure; SameSite=None",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "x-content-type-options": "nosniff",
+    "x-ds-trace-id": "0457e07271bb831346364de0ed07049e"
+  },
+  error: undefined,
+  code: undefined,
+  param: undefined,
+  type: undefined,
+  request_id: undefined
+}
+
+a crash from deepseek
+
+Error during API call: Error: 500 <html>
+<head><title>500 Internal Server Error</title></head>
+<body>
+<center><h1>500 Internal Server Error</h1></center>
+<hr><center>openresty</center>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92f25199ba63d9bb',t:'MTc0NDQ1NjY2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+    at Function.generate (https://deno.land/x/openai@v4.67.2/error.ts:105:14)
+    at OpenAI.makeStatusError (https://deno.land/x/openai@v4.67.2/core.ts:498:21)
+    at OpenAI.makeRequest (https://deno.land/x/openai@v4.67.2/core.ts:580:24)
+    at eventLoopTick (ext:core/01_core.js:175:7)
+    at async relay (file:///Users/simon/nitro/roha/roha.js:567:22)
+    at async chat (file:///Users/simon/nitro/roha/roha.js:627:5) {
+  status: 500,
+  headers: {
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "92f25199ba63d9bb-AKL",
+    "content-type": "text/html",
+    date: "Sat, 12 Apr 2025 11:17:42 GMT",
+    server: "cloudflare",
+    "set-cookie": "__cf_bm=0e6mAXFZEN9uX.g7EPPEXzha12vS1r07WsW2nLjQpJg-1744456662-1.0.1.1-ThMTMF7tFNvars2hxMmG5KOiFPhXPHW970Ulqfno_QPbjkfNjFuGOYbN6wI38Y3IbPtfLjTdUNP7AiKxm7cCy71SJemO.nc7vBskbaKS8T0; path=/; expires=Sat, 12-Apr-25 11:47:42 GMT; domain=.deepseek.com; HttpOnly; Secure; SameSite=None",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "x-content-type-options": "nosniff",
+    "x-ds-trace-id": "58894179989fb2450d208322c39e2be9"
+  },
+  error: undefined,
+  code: undefined,
+  param: undefined,
+  type: undefined,
+  request_id: undefined
+}
+
+> 
+
+an example of removing a file and the calling /dump
+
+> /dump
+Error processing command: No such file or directory (os error 2): stat '/Users/simon/nitro/roha/ideas.txt'
+> 
+
+
+
+
 > check roha.js for obvious bugs and not so obvious as if you were skilled js enior
 > 
 status:[model grok-3-beta 6338 737 13022 25056]

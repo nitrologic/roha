@@ -5,6 +5,10 @@
 		"model": "grok-3-mini-beta",
 		"instance": "new OpenAI({ apiKey: XAI_API_KEY, baseURL: XAI_URL })"
 	},
+	"deepseek":{
+		"env":"DEEPSEEK_API_KEY",
+		"url":"https://api.deepseek.com"		
+	},
 	"openai": {
 		"env": "OPENAI_API_KEY",
 		"url": "https://api.openai.com/v1",
