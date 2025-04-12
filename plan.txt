@@ -1,7 +1,8 @@
 roha roadmap
 
-add a speed config for sleeping between line output
-tag command
+consider ai query to manage shares , or function
+autosave on exit
+tag command features
 retire use of deno prompt
 auto dump on file change
 fix black text on dark background in light mode terminals
