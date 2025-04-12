@@ -390,6 +390,17 @@ async function dumpShares(tag){
 	return dirty;
 }
 
+function listAccounts(){
+	let list=[];
+	for(let key in modelAccounts){
+		let value=modelAccounts[key];
+		list.push(key);
+	}
+	for(let i=0;i<list.length;i++){
+		echo(i,list[i]);
+	}
+}
+
 async function showHelp() {                                                                                                                                                       
 	try {                                                                                                                                                                              
 		const md = await Deno.readTextFile("roha.md");                                                                                                                                   
@@ -408,6 +419,9 @@ async function callCommand(command) {
 	let words = command.split(" ",2);
 	try {
 		switch (words[0]) {
+			case "account":
+				await listAccounts();
+				break;
 			case "help":
 				await showHelp();
 				break;
@@ -520,6 +534,7 @@ async function callCommand(command) {
 				dirty=await dumpShares(tag);
 				break;
 			default:
+				echo("Command not recognised");
 				return false; // Command not recognized
 		}
 	} catch (error) {
