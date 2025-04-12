@@ -1,5 +1,9 @@
 roha roadmap
 
+add a speed config for sleeping between line output
+tag command
+retire use of deno prompt
+auto dump on file change
 fix black text on dark background in light mode terminals
 sharedFiles [] => {} to avoid duplicants
 remove shares if file not found on stat

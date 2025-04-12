@@ -29,7 +29,7 @@ const rohaTitle="nitrologic chat client";
 const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
 
 const flagNames={
-	dumponstart : "dump shares on start",
+	commitonstart : "commit shared files on start",
 	ansi : "markdown ANSI rendering"
 };
 
@@ -82,9 +82,10 @@ const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
 const emptyRoha={
-	config:{dumponstart:true},
-	sharedFiles:[],
-	saves:[]
+	config:{commitonstart:true},
+	saves:[],
+	tags:{},
+	sharedFiles:[]
 };
 const appDir = Deno.cwd();
 const rohaPath = resolve(appDir,"roha.json");
@@ -322,8 +323,12 @@ function resolvePath(dir,filename){
 	return path;
 }
 
+let shareCount=0;
+
 function addShare(share){
+	share.id="share"+(shareCount++);
 	roha.sharedFiles.push(share);
+	if(share.tag) setTag(share.tag,share.id);
 }
 
 async function shareDir(dir,tag) {
@@ -341,7 +346,7 @@ async function shareDir(dir,tag) {
 			let size=info.size;
 			let modified=info.mtime.getTime();
 			const hash = await hashFile(path);
-			addShare({path,size,modified,hash,tag})
+			addShare({path,size,modified,hash,tag})			
 		}
 	} catch (error) {
 		console.error("### Error"+error);
@@ -388,7 +393,7 @@ async function shareFile(path) {
 	if (!rohaShares.includes(path)) rohaShares.push(path);
 }
 
-async function dumpShares(tag) {
+async function commitShares(tag) {
 	let dirty = false;
 	const validShares = [];
 	const removedPaths = [];
@@ -425,27 +430,23 @@ async function dumpShares(tag) {
 	return dirty;
 }
 
-async function dumpShares2(tag){
-	let dirty=false;
-	let bad=[];
-	for(let share of roha.sharedFiles){
-		if(tag&&share.tag!=tag) continue;
-		const path = share.path;
-		try{
-			const info = await Deno.stat(path);
-			let modified=share.modified!=info.mtime.getTime();
-			let isShared=rohaShares.includes(path);
-			if (modified || !isShared) {
-				shareFile(path);
-				share.modified=info.mtime.getTime();
-//				manageHistory(path);
-				dirty=true;
-			}
-		}catch(error){
-			bad.push(share);
-		}
+async function setTag(name,note){
+	let tags=roha.tags||{};
+	let tag=(tags[name])?tags[name]:{name,info:[]};
+	tag.info.push(note);
+	tags[name]=tag;
+	roha.tags=tags;
+	await writeRoha();
+}
+
+function listTags(){
+	let tags=roha.tags||{};
+	let keys=Object.keys(tags);
+	for(let i=0;i<keys.length;i++){
+		let tag=tags[keys[i]];
+		const name=tag.name||"?????";
+		echo(i,name,"["+tag.info.join(",")+"]");
 	}
-	return dirty;
 }
 
 function listAccounts(){
@@ -477,6 +478,9 @@ async function callCommand(command) {
 	let words = command.split(" ",2);
 	try {
 		switch (words[0]) {
+			case "tag":
+				await listTags();
+				break;
 			case "account":
 				await listAccounts();
 				break;
@@ -543,6 +547,7 @@ async function callCommand(command) {
 			case "reset":
 				rohaShares = [];
 				roha.sharedFiles=[];
+				roha.tags=[];
 				await writeRoha();
 				resetHistory();
 				echo("All shares and history reset.");
@@ -584,12 +589,14 @@ async function callCommand(command) {
 					listShares();
 				}
 				break;
+			case "roha":
 			case "dump":
+			case "commit":
 				let tag="";
 				if(words.length>1){
 					tag=words[1];
 				}
-				dirty=await dumpShares(tag);
+				dirty=await commitShares(tag);
 				break;
 			default:
 				echo("Command not recognised");
@@ -609,7 +616,7 @@ await readRoha();
 echo("shares count:",roha.sharedFiles.length)
 
 if(roha.config){
-	if(roha.config.dumponstart) await dumpShares();
+	if(roha.config.commitonstart) await commitShares();
 }else{
 	roha.config={};
 }
