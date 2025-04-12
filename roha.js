@@ -253,7 +253,7 @@ async function hashFile(filePath) {
 
 const fileExists = await exists(rohaPath);
 if (!fileExists) {
-	await Deno.writeTextFile(rohaPath, JSON.stringify([]));
+	await Deno.writeTextFile(rohaPath, JSON.stringify({shares:[],sharedFiles:[]}));
 	echo("Created a new roha.json");
 }
 
@@ -357,14 +357,26 @@ async function shareFile(path) {
 	if (!shares.includes(path)) shares.push(path);
 }
 
+function flatten(text){
+	return text.replace(/\n/g, " ");
+}
+
 async function callCommand(command) {
 	let dirty=false;
 	let words = command.split(" ",2);  
 	try {
 		switch (words[0]) {
-			case "markdown":
+			case "history":
+				let history=grokHistory;
+				let n=history.length;
+				for(let i=0;i<n;i++){
+					let content=flatten(history[i].content).substring(0,50);
+					echo(i,history[i].role,content);
+				}
+				break;
+			case "ansi":
 				markdownEnabled = !markdownEnabled;
-				echo("Markdown rendering " + (markdownEnabled ? "enabled" : "disabled"));
+				echo("Markdown ANSI rendering " + (markdownEnabled ? "enabled" : "disabled"));
 				break;	
 			case "load":
 				let save=words[1];

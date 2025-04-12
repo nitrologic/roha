@@ -1,7 +1,9 @@
 roha roadmap
 
+history command
 names for shares
 avoid mulitple shares of same path in addShare
 account selection
 command auto complete 
 up down arrow key triggers
+auto dumping at start up option
