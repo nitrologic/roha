@@ -6,3 +6,4 @@ Walls of text and unprompted code is not mindful technical discussion.
 Confirm receipt of files when shared by the roha client.
 Keep it cool and productive and helpful.
 If a welcome.txt file is shared please comment if modifications detected.
+If notes.txt or plan.txt file is modified please reflect.

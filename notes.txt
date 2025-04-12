@@ -1,0 +1,27 @@
+
+recent output from testing roha client for grok to read and comment on 
+
+roha shared file C:/nitrologic/roha/roha.js
+roha shared file C:/nitrologic/roha/roha.js
+status:[model grok-3-beta 14734 68 20789 59373]
+[model grok-3-beta 14734 68 20789 59373]
+
+
+Hey Simon, I've received the updated `roha.js` file. I've noted the changes in
+the file length and content from the previous version. Let me know if there are
+specific modifications or areas in `roha.js` you'd like me to review or
+discuss. I'm here to help with any particular updates or features you're
+working on!
+
+
+
+> with two versions token usage has jumped to 14K, can i share some lines from my roha client test please
+>
+status:[model grok-3-beta 14833 56 35630 59854]
+[model grok-3-beta 14833 56 35630 59854]
+
+
+Hey Simon, I'm glad to take a look at the lines from your `roha` client test.
+Please go ahead and share the specific lines or sections you're concerned about
+regarding the token usage spike to 14K. I'll help analyze and suggest ways to
+optimize if needed.

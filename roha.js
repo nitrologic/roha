@@ -15,7 +15,6 @@ var grokHistory;
 
 resetHistory();
 
-// simon not grok was here
 function measure(o){
 	let total=JSON.stringify(o).length;
 	return total;
@@ -198,7 +197,6 @@ const rohaPrompt=">";
 const ansiItalics = "\x1b[3m";
 const ansiReset = "\x1b[0m";
 const ansiPurple = "\x1b[1;35m";
-
 
 function mdToAnsi(md) {
 	const lines = md.split("\n");
@@ -527,7 +525,7 @@ async function chat() {
 	dance:
 	while (true) {
 		let lines=[];
-		await sleep(500);
+		await sleep(800);
 		echo(ansiMoveToEnd);
 		while (true) {
 			const line = prompt(rohaPrompt);
