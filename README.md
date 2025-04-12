@@ -4,7 +4,7 @@
 
 a command line client to share folders and chat
 
-expects valid XAI_API_KEY environment variable
+requires XAI_API_KEY DEEPSEEK_API_KEY or OPENAI_API_KEY environment variable to run
 
 # interface
 
