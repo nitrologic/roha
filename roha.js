@@ -186,7 +186,10 @@ const ansiBackgrounds = [
 	{ name: "deepGray", code: "\x1b[48;5;240m" } // #585858
 ];
 
-const ansiCodeBlock = ansiBackgrounds[6].code; //"\x1b[1;36m"
+const ansiReplyBlock = ansiBackgrounds[0].code;
+const ansiCodeBlock = ansiBackgrounds[6].code;
+
+const rohaPrompt=">";
 
 const ansiItalics = "\x1b[3m";
 const ansiReset = "\x1b[0m";
@@ -194,7 +197,7 @@ const ansiPurple = "\x1b[1;35m";
 function mdToAnsi(md) {
 	const lines = md.split("\n");
 	let inCode = false;
-	const result = [];
+	const result = [ansiReplyBlock];
 	for (let line of lines) {
 		line=line.trimEnd();
 		let trim=line.trim();
@@ -203,7 +206,7 @@ function mdToAnsi(md) {
 			if(inCode){
 				result.push(ansiCodeBlock);
 			}else{
-				result.push(ansiReset);
+				result.push(ansiReplyBlock);
 			}
 		}else{
 			if (!inCode) {
@@ -231,6 +234,7 @@ function mdToAnsi(md) {
 			result.push(line.trimEnd());
 		}
 	}
+	result.push(ansiReset);
 	return result.join("\n");
 }
 
@@ -477,8 +481,10 @@ async function relay(){
 		}
 		let usage=completion.usage;
 		let size=measure(grokHistory);
-		grokUsage+=usage.prompt_tokens+usage.completion_tokens;
-		echo("[model "+grokModel+" "+usage.prompt_tokens+" "+usage.completion_tokens+" "+grokUsage+" "+size+"]");
+		grokUsage+=usage.prompt_tokens|0+usage.completion_tokens|0;
+		let status="[model "+grokModel+" "+usage.prompt_tokens+" "+usage.completion_tokens+" "+grokUsage+" "+size+"]";
+		console.log("status:"+status);
+		echo(status);
 		var reply = "<blank>";
 		for(const choice of completion.choices){
 			reply = choice.message.content;
@@ -494,7 +500,7 @@ async function chat() {
 	while (true) {
 		let lines=[];
 		while (true) {
-			const line = prompt(">");
+			const line = prompt(rohaPrompt);
 			if (line === '') break;
 			if (line === "exit") {
 				echo("Ending the conversation...");

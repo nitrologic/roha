@@ -1,5 +1,7 @@
-A 2025 Q2 roadmap for roha command line client
+roha roadmap
 
 names for shares
 avoid mulitple shares of same path in addShare
 account selection
+command auto complete 
+up down arrow key triggers
