@@ -1,3 +1,0 @@
-Features under consideration for roha client.
-
-auto dumping at start up option
