@@ -1,8 +1,10 @@
-![roha session](roha.png)
+![roha session](roha2.png)
 
 # roha
 
 a command line client to share folders and chat
+
+expects valid XAI_API_KEY environment variable
 
 # interface
 

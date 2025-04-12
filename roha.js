@@ -98,11 +98,13 @@ function resetModel(name){
 	grokModel=name;
 }
 
-//let grokModel = "grok-3-beta";
-//let grok = await connectModel("xai",true);
+// persistant model selection not quite there
 
-let grokModel = "o3-mini-2025-01-31";
-let grok = await connectModel("openai",true);
+let grokModel = "grok-3-beta";
+let grok = await connectModel("xai",true);
+
+//let grokModel = "o3-mini-2025-01-31";
+//let grok = await connectModel("openai",true);
 let grokUsage = 0;
 
 let roha={sharedFiles:[],saves:[]};
