@@ -26,6 +26,10 @@ requires XAI_API_KEY DEEPSEEK_API_KEY or OPENAI_API_KEY environment variable to 
 
 /save
 
+# reference
+
+For detailed command documentation and project roadmap look here [roha.md](roha.md).
+
 # development
 
 https://github.com/nitrologic/roha
