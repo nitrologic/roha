@@ -1,5 +1,6 @@
 roha roadmap
 
+fix black text on dark background in light mode terminals
 sharedFiles [] => {} to avoid duplicants
 remove shares if file not found on stat
 account selection

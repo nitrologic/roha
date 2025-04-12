@@ -1,3 +1,14 @@
+function detectAnsiSettings() {
+  const isLightMode = Deno.env.get("COLORFGBG")?.includes(";15") ||
+                     Deno.env.get("TERM_BG") === "light";
+  return {
+    background: isLightMode ? ansiBackgrounds[5] : ansiBackgrounds[0],
+    text: isLightMode ? "\x1b[30m" : "\x1b[37m"
+  };
+}
+
+
+
 a second crash from deepseek
 
 Error during API call: Error: 500 <html>

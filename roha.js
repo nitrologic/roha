@@ -14,8 +14,8 @@ const rohaTitle="nitrologic chat client";
 const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
 
 const flagNames={
-	dumponstart:"dump shares on start",
-	ansi:"Markdown ANSI rendering"
+	dumponstart : "dump shares on start",
+	ansi : "markdown ANSI rendering"
 };
 
 const textExtensions = [
