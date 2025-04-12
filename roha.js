@@ -9,6 +9,15 @@ import { exists } from "https://deno.land/std/fs/exists.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import OpenAI from "https://deno.land/x/openai@v4.67.2/mod.ts";
 
+const emptyRoha={
+	config:{commitonstart:true,ansi:true,speed:true},
+	saves:[],
+	tags:{},
+	sharedFiles:[]
+};
+
+let roha=emptyRoha;
+
 const rohaTools = [{
 	type: "function",
 	function:{
@@ -30,7 +39,8 @@ const rohaMihi="I am testing the roha chat client. You are a helpful assistant."
 
 const flagNames={
 	commitonstart : "commit shared files on start",
-	ansi : "markdown ANSI rendering"
+	ansi : "markdown ANSI rendering",
+	speed : "output at reading speed"
 };
 
 const textExtensions = [
@@ -52,8 +62,25 @@ function measure(o){
 	return total;
 }
 
-function echo(...args){
-	console.log(...args);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+let outputBuffer = [];
+
+function echo(){
+	let args=arguments.length?Array.from(arguments):[];
+	let lines=args.join(" ").split("\n");
+	for(let line of lines){
+		outputBuffer.push(line.trimEnd());
+	}
+}
+
+async function flush() {
+	const delay = roha.config.speed ? 100 : 0;
+	for (const line of outputBuffer) {	
+		console.log(line);
+		await sleep(delay);
+	}
+	outputBuffer=[];
 }
 
 function wordWrap(text,cols=terminalColumns){
@@ -81,12 +108,6 @@ const MaxFileSize=65536;
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
-const emptyRoha={
-	config:{commitonstart:true,ansi:true},
-	saves:[],
-	tags:{},
-	sharedFiles:[]
-};
 const appDir = Deno.cwd();
 const rohaPath = resolve(appDir,"roha.json");
 const accountsPath = resolve(appDir,"accounts.json");
@@ -146,7 +167,6 @@ let grok = await connectModel("deepseek",true);
 
 let grokUsage = 0;
 
-let roha=emptyRoha;
 //let sharedFiles=[];
 let rohaShares=[];
 let currentDir = Deno.cwd();
@@ -348,7 +368,7 @@ async function shareDir(dir,tag) {
 			let size=info.size;
 			let modified=info.mtime.getTime();
 			const hash = await hashFile(path);
-			await addShare({path,size,modified,hash,tag})			
+			await addShare({path,size,modified,hash,tag})
 		}
 		await writeRoha(); // TODO: check a dirty flag
 	} catch (error) {
@@ -696,8 +716,6 @@ async function relay() {
 	}
 }
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 async function chat() {
 	dance:
 	while (true) {
@@ -705,6 +723,7 @@ async function chat() {
 		await sleep(800);
 		echo(ansiMoveToEnd);
 		while (true) {
+			await flush();
 			const line = prompt(rohaPrompt);
 			if (line === '') break;
 			if (line === "exit") {

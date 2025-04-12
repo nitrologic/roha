@@ -1,36 +1,3 @@
-tags are not persisting between runs
-
-C:\nitrologic\roha>deno run --allow-env --allow-net --allow-read --allow-write roha.js
-Connecting to model: deepseek
-nitrologic chat client
-connected to https://api.deepseek.com
-running from C:\nitrologic\roha\roha.json
-shares count: 0
-
-> /share .
-Enter tag name (optional): roha
-Share directory path: C:/nitrologic/roha
-> /tag
-0 roha [share0,share1,share2,share3,share4,share5,share6,share7,share8,share9,share10,share11,share12,share13]
->
-
-C:\nitrologic\roha>test
-
-C:\nitrologic\roha>deno run --allow-env --allow-net --allow-read --allow-write roha.js
-Connecting to model: deepseek
-nitrologic chat client
-connected to https://api.deepseek.com
-running from C:\nitrologic\roha\roha.json
-shares count: 14
-
-> /tag
->
-
-latest crash
-> what time is it?
-> 
-[model deepseek-chat 12326 15 24621 42630]
-Error during API call: Error: 422 Failed to deserialize the JSON body into the target type: messages[39]: missing field `content` at line 164 column 3
 
 > check roha.js for obvious bugs and not so obvious as if you were skilled js enior
 > 
