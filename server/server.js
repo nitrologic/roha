@@ -1,4 +1,11 @@
 import { serve } from "https://deno.land/std/http/server.ts";
+import Steam from "https://deno.land/x/steam/mod.ts";
+
+const STEAM_KEY=Deno.env.get("STEAM_API_KEY");
+//const steam = new Steam(STEAM_KEY);
+//const achievements = await steam.GetPlayerAchievements("steam-id", 730);
+//console.log(achievements);
+
 
 async function handler(req) {
 		if (req.method !== "POST")

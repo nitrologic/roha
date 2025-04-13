@@ -2,18 +2,17 @@
 	"xai": {
 		"env": "XAI_API_KEY",
 		"url": "https://api.x.ai/v1",
-		"model": "grok-3-mini-beta",
-		"instance": "new OpenAI({ apiKey: XAI_API_KEY, baseURL: XAI_URL })"
+		"model": "grok-3-mini-beta"
 	},
 	"deepseek":{
 		"env":"DEEPSEEK_API_KEY",
-		"url":"https://api.deepseek.com"		
+		"url":"https://api.deepseek.com",
+		"model":"deepseek-chat"	
 	},
 	"openai": {
 		"env": "OPENAI_API_KEY",
 		"url": "https://api.openai.com/v1",
-		"model": "gpt-4o",
-		"instance": "new OpenAI({ apiKey: OPENAI_API_KEY, baseURL: OPENAI_URL })"
+		"model": "gpt-4o"
 	}
   }
   

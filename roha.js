@@ -8,12 +8,19 @@ import { contentType } from "https://deno.land/std@0.224.0/media_types/mod.ts";
 import { exists } from "https://deno.land/std/fs/exists.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import OpenAI from "https://deno.land/x/openai@v4.67.2/mod.ts";
-import Steam from "https://deno.land/x/steam/mod.ts";
 
-const STEAM_KEY=Deno.env.get("STEAM_API_KEY");
-//const steam = new Steam(STEAM_KEY);
-//const achievements = await steam.GetPlayerAchievements("steam-id", 730);
-//console.log(achievements);
+const terminalColumns=80;
+
+const rohaTitle="nitrologic chat client";
+
+const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
+
+const flagNames={
+	commitonstart : "commit shared files on start",
+	ansi : "markdown ANSI rendering",
+	speed : "output at reading speed",
+	verbose : "emit debug information"
+};
 
 const emptyRoha={
 	config:{commitonstart:true,ansi:true,speed:true},
@@ -23,6 +30,15 @@ const emptyRoha={
 };
 
 let roha=emptyRoha;
+let rohaCalls=0;
+
+const textExtensions = [
+	"js", "txt", "json", "md",
+	"css","html", "svg",
+	"cpp", "c", "h", "cs",
+	"sh", "bat",
+	"log","py","csv","xml","ini"
+];
 
 const rohaTools = [{
 	type: "function",
@@ -35,31 +51,34 @@ const rohaTools = [{
 			required: []
 		}
 	}
+},{
+	type: "function",
+	function:{
+		name: "submit_file",
+		description: "Submit a file for review",
+		parameters: {
+			type: "object",
+			properties: {},
+			required: []
+		}
+	}
+},{
+	type: "function",
+	function: {
+		name: "annotate_tag",
+		description: "Assign description to tag",
+		parameters: {
+			type: "object",
+			properties: {
+				tag: { type: "string" },
+		  		description: { type: "string" }
+			},
+			required: ["tag","description"]
+		}
+	}
 }];
 
-let rohaCalls=0;
-
-const rohaTitle="nitrologic chat client";
-
-const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
-
-const flagNames={
-	commitonstart : "commit shared files on start",
-	ansi : "markdown ANSI rendering",
-	speed : "output at reading speed"
-};
-
-const textExtensions = [
-	"js", "txt", "json", "md",
-	"css","html", "svg",
-	"cpp", "c", "h", "cs",
-	"sh", "bat",
-	"log","py","csv","xml","ini"
-];
-
-const terminalColumns=80;
-
-var grokHistory;
+var rohaHistory;
 
 resetHistory();
 
@@ -82,7 +101,7 @@ function echo(){
 
 async function flush() {
 	const delay = roha.config.speed ? 100 : 0;
-	for (const line of outputBuffer) {	
+	for (const line of outputBuffer) {
 		console.log(line);
 		await sleep(delay);
 	}
@@ -107,8 +126,6 @@ function wordWrap(text,cols=terminalColumns){
 	}
 	return result.join("\n");
 }
-
-let verbose=true;
 
 const MaxFileSize=65536;
 const decoder = new TextDecoder("utf-8");
@@ -194,18 +211,19 @@ function listSaves(){
 }
 
 function resetHistory(){
-	grokHistory = [{role:"system",content:rohaMihi}];
+	rohaHistory = [{role:"system",content:rohaMihi}];
 }
 
 function manageHistory(path) {
-	const indices = grokHistory
+	const indices = rohaHistory
 		.map((entry, index) => (entry.content.includes(`path=${path},`) ? index : -1))
 		.filter(index => index !== -1);
 	//echo(`manageHistory Found ${indices.length} history entries for ${path}`);
 	for(let i=indices.length-3;i>=0;i--){
 		let index=indices[i];
 		// remove the filetype and content message from biggest to smallest
-		grokHistory.splice(index,2);
+		// rohaHistory.splice(index,2);
+		rohaHistory[index+1].content=null;
 	}
 }
 
@@ -214,8 +232,8 @@ async function saveHistory() {
 		let timestamp=Math.floor(Date.now()/1000).toString(16);
 		let filename=".roha-save-"+timestamp+".json";
 		let line="history snapshot saved to "+filename;
-		grokHistory.push({role: "system",content: line});
-		await Deno.writeTextFile(filename, JSON.stringify(grokHistory,null,"\t"));
+		rohaHistory.push({role: "system",content: line});
+		await Deno.writeTextFile(filename, JSON.stringify(rohaHistory,null,"\t"));
 		echo(line);
 		roha.saves.push(filename);
 		await writeRoha();
@@ -356,7 +374,9 @@ let shareCount=0;
 async function addShare(share){
 	share.id="share"+(shareCount++);
 	roha.sharedFiles.push(share);
-	if(share.tag) await setTag(share.tag,share.id);
+	if(share.tag) {
+		await setTag(share.tag,share.id);
+	}
 }
 
 async function shareDir(dir,tag) {
@@ -397,7 +417,7 @@ async function shareFile(path) {
 	if(path.endsWith("rules.txt")){
 		let lines=decoder.decode(fileContent).split("\n");
 		for(let line of lines ){
-			if (line) grokHistory.push({role: "system",content: line});
+			if (line) rohaHistory.push({role: "system",content: line});
 		}
 	}else{
 		const length=fileContent.length;
@@ -405,20 +425,20 @@ async function shareFile(path) {
 			const extension = path.split('.').pop();
 			const type = fileType(extension);
 //			fileshare+={path,history.length}
-			grokHistory.push({role: "user",content: `File metadata: path=${path}, length=${length} bytes`});
+			rohaHistory.push({role: "user",content: `File metadata: path=${path}, length=${length} bytes`});
 			if (textExtensions.includes(extension)) {
 				let txt = decoder.decode(fileContent);
 				if(txt.length){
-					grokHistory.push({role:"user",content:txt});
+					rohaHistory.push({role:"user",content:txt});
 				}
 			}else{
 				const base64Encoded = btoa(String.fromCharCode(...new Uint8Array(fileContent)));
 				const mimeType = fileType(extension);
-				grokHistory.push({role: "user",content: `File content: MIME=${mimeType}, Base64=${base64Encoded}`});
+				rohaHistory.push({role: "user",content: `File content: MIME=${mimeType}, Base64=${base64Encoded}`});
 			}
 		}
 	}
-	if(verbose)echo("roha shared file " + path);
+	if(roha.config.verbose)echo("roha shared file " + path);
 	if (!rohaShares.includes(path)) rohaShares.push(path);
 }
 
@@ -456,6 +476,10 @@ async function commitShares(tag) {
 		echo(`Removed invalid shares:\n${removedPaths.join('\n')}`);
 	}
 
+	if (dirty) {
+		rohaHistory.push({role: "system",content:"Modified tagged shares, please /annotate_tag"});
+	}
+
 	return dirty;
 }
 
@@ -466,6 +490,7 @@ async function setTag(name,note){
 	tags[name]=tag;
 	roha.tags=tags;
 	await writeRoha();
+	rohaHistory.push({role: "system",content: `New tag "${name}" added. Describe all shares with this tag.`});
 }
 
 function listTags(){
@@ -525,9 +550,9 @@ async function callCommand(command) {
 						await writeRoha();
 					}
 				}else{
-//					echo("config:"+JSON.stringify(roha.config));
+					let count=0;
 					for(let flag in flagNames){
-						echo(flag,":",flagNames[flag],":",(roha.config[flag]?"true":"false"))
+						echo((count++),flag,":",flagNames[flag],":",(roha.config[flag]?"true":"false"))
 					}
 				}
 				break;
@@ -535,7 +560,7 @@ async function callCommand(command) {
 				echo("Current time:", new Date().toString());
 				break;
 			case "history":
-				let history=grokHistory;
+				let history=rohaHistory;
 				let n=history.length;
 				for(let i=0;i<n;i++){
 					let content=flatten(history[i].content).substring(0,50);
@@ -548,7 +573,7 @@ async function callCommand(command) {
 					if(!isNaN(save)) save=roha.saves[save|0];
 					if(roha.saves.includes(save)){
 						let history=await loadHistory(save);
-						grokHistory=history;
+						rohaHistory=history;
 					}
 				}else{
 					listSaves();
@@ -657,21 +682,31 @@ async function onCall(toolCall) {
 	switch(toolCall.function.name) {
 		case "get_current_time":
 			return {time: new Date().toISOString()};
+		case "annotate_tag":
+			try {
+				const { tag, description } = JSON.parse(toolCall.function.arguments || "{}");
+				roha.tags[tag].description=description;
+				await writeRoha(); // Persist changes
+				return { success: true, updated: 1 };
+			} catch (error) {
+				echo("annotate_tag error:",error);
+				return { error };
+			}
 	}
 }
 
 async function relay() {
 	try {
-		const payload = { model: grokModel, messages: grokHistory, tools: rohaTools };
+		const payload = { model: grokModel, messages: rohaHistory, tools: rohaTools };
 		const completion = await grok.chat.completions.create(payload);
 		if (completion.model != grokModel) {
 			echo("[relay model alert model:" + completion.model + " grokModel:" + grokModel + "]");
 		}
-		if (verbose) {
+		if (roha.config.verbose) {
 			// echo("relay completion:" + JSON.stringify(completion, null, "\t"));
 		}
 		let usage = completion.usage;
-		let size = measure(grokHistory);
+		let size = measure(rohaHistory);
 		grokUsage += usage.prompt_tokens | 0 + usage.completion_tokens | 0;
 		let status = "[model " + grokModel + " " + usage.prompt_tokens + " " + usage.completion_tokens + " " + grokUsage + " " + size + "]";
 		echo(status);
@@ -689,7 +724,7 @@ async function relay() {
 					}
 				}));
 				// Add assistant message with tool_calls
-				grokHistory.push({
+				rohaHistory.push({
 					role: "assistant",
 					content: choice.message.content || null,
 					tool_calls: toolCalls
@@ -698,7 +733,7 @@ async function relay() {
 				for (let i = 0; i < calls.length; i++) {
 					const tool = calls[i];
 					const result = await onCall(tool);
-					grokHistory.push({
+					rohaHistory.push({
 						role: "tool",
 						tool_call_id: toolCalls[i].id,
 						name: tool.function.name,
@@ -716,7 +751,7 @@ async function relay() {
 				echo(wordWrap(reply));
 			}
 		}
-		grokHistory.push({ role: "assistant", content: reply });
+		rohaHistory.push({ role: "assistant", content: reply });
 	} catch (error) {
 		console.error("Error during API call:", error);
 	}
@@ -750,7 +785,7 @@ async function chat() {
 		if (lines.length){
 			const query=lines.join("\n");
 			if(query.length){
-				grokHistory.push({ role: "user", content: query });
+				rohaHistory.push({ role: "user", content: query });
 				await relay();
 			}
 		}
