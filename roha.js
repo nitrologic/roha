@@ -9,38 +9,68 @@ import { exists } from "https://deno.land/std/fs/exists.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import OpenAI from "https://deno.land/x/openai@v4.67.2/mod.ts";
 
-const terminalColumns=80;
-
 const rohaTitle="nitrologic chat client";
 
 const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
+
+const terminalColumns=120;
 
 const flagNames={
 	commitonstart : "commit shared files on start",
 	ansi : "markdown ANSI rendering",
 	slow : "output at reading speed",
-	verbose : "emit debug information"
+	verbose : "emit debug information",
+	broken : "ansi background blocks"
 };
 
 const emptyRoha={
-	config:{commitonstart:true,ansi:true,slow:false,verbose:false},
-	saves:[],
+	config:{
+		commitonstart:true,
+		ansi:true,
+		slow:false,
+		verbose:false,
+		broken:false
+	},
 	tags:{},
+	models:{},
+	saves:{},
+	shares:{},
 	sharedFiles:[]
 };
 
+var tagList=[];
+var modelList=[];
+var saveList=[];
+var shareList=[];
+
+const emptyModel={
+	name:"empty",account:"",hidden:false,prompts:0,completion:0
+}
+
+const emptyTag={
+}
+
 let roha=emptyRoha;
 let rohaCalls=0;
-
 let listCommand="";
+let rohaShares=[];
+let currentDir = Deno.cwd();
 
-const textExtensions = [
-	"js", "txt", "json", "md",
-	"css","html", "svg",
-	"cpp", "c", "h", "cs",
-	"sh", "bat",
-	"log","py","csv","xml","ini"
-];
+// roaHistory
+
+var rohaHistory;
+
+function resetHistory(){
+	rohaHistory = [{role:"system",content:rohaMihi}];
+}
+
+function rohaPush(content){
+	rohaHistory.push({role: "user",name: "roha",content});
+}
+
+resetHistory();
+
+// roaTools
 
 const rohaTools = [{
 	type: "function",
@@ -84,20 +114,14 @@ const rohaTools = [{
 	}
 }];
 
-function rohaPush(content){
-	rohaHistory.push({role: "user",name: "roha",content});
+function sleep(ms) {
+	return new Promise(function(resolve) {setTimeout(resolve, ms);});
 }
-
-var rohaHistory;
-
-resetHistory();
 
 function measure(o){
 	let total=JSON.stringify(o).length;
 	return total;
 }
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let outputBuffer = [];
 
@@ -137,6 +161,8 @@ function wordWrap(text,cols=terminalColumns){
 	return result.join("\n");
 }
 
+// main roha application starts here
+
 const MaxFileSize=65536;
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
@@ -147,7 +173,22 @@ const accountsPath = resolve(appDir,"accounts.json");
 const cachePath=resolve(appDir,"cache");
 
 const modelAccounts = JSON.parse(await Deno.readTextFile(accountsPath));
-const modelList=[];
+
+const fileExists = await exists(rohaPath);
+if (!fileExists) {
+	await Deno.writeTextFile(rohaPath, JSON.stringify(emptyRoha));
+	echo("Created a new roha.json");
+}
+
+const rohaAccount={};
+for(let account in modelAccounts){
+	let endpoint = await connectAccount(account);
+	if(endpoint) rohaAccount[account]=endpoint;
+}
+
+let grokModel = roha.model||"deepseek-chat@deepseek";
+let grokUsage = 0;
+echo("prompting with ",grokModel);
 
 function stringify(value, seen = new WeakSet(), keyName = "") {
 	if (typeof value === "string") return value;
@@ -164,25 +205,29 @@ function stringify(value, seen = new WeakSet(), keyName = "") {
 	return `{${entries.join(",\n")}}`;
 }
 
-async function connectAccount(account,silent) {
+async function connectAccount(account) {
+	let verbose=roha.config.verbose;
 	echo("Connecting to account:", account);
 	const config = modelAccounts[account];
 	if (!config) return null;
 	try{
 		const apiKey = Deno.env.get(config.env);
 		const endpoint = new OpenAI({ apiKey, baseURL: config.url });
-		if(!silent){
+		if(verbose){
 			for(const [key, value] of Object.entries(endpoint)){
 				let content=stringify(value);
 				echo("endpoint:"+key+":"+content);
 			}
 		}
 		const models = await endpoint.models.list();
+		const list=[];
 		for (const model of models.data) {
 			let name=model.id+"@"+account;
-			modelList.push(name);
-	//		if(verbose) echo("model:"+JSON.stringify(model));
+			list.push(name);
+//			if() echo("model:"+JSON.stringify(model));
 		}
+		list.sort();
+		modelList=modelList.concat(list);
 		return endpoint;
 	}catch(error){
 		echo(error);
@@ -190,28 +235,11 @@ async function connectAccount(account,silent) {
 	return null;
 }
 
-function resetModel(name){
+async function resetModel(name){
 	grokModel=name;
+	echo("using model",name)
+	await writeRoha;
 }
-
-// persistant model selection not quite there
-
-const rohaAccount={};
-
-for(let account in modelAccounts){
-	let endpoint = await connectAccount(account,true);
-	if(endpoint) rohaAccount[account]=endpoint;
-}
-
-//let grokModel = "grok-3-beta@xai";
-let grokModel = "deepseek-chat@deepseek";
-//let grokModel = "o3-mini-2025-01-31@openai";
-
-let grokUsage = 0;
-
-//let sharedFiles=[];
-let rohaShares=[];
-let currentDir = Deno.cwd();
 
 function listShares(){
 	let shares=roha.sharedFiles;
@@ -227,10 +255,6 @@ function listSaves(){
 	for(let i=0;i<saves.length;i++){
 		echo(i,saves[i]);
 	}
-}
-
-function resetHistory(){
-	rohaHistory = [{role:"system",content:rohaMihi}];
 }
 
 async function saveHistory() {
@@ -291,9 +315,10 @@ const ansiReset = "\x1b[0m";
 const ansiPurple = "\x1b[1;35m";
 
 function mdToAnsi(md) {
+	let broken=roha.config.broken;
 	const lines = md.split("\n");
 	let inCode = false;
-	const result = [ansiReplyBlock];
+	const result = broken?[ansiReplyBlock]:[];
 	for (let line of lines) {
 		line=line.trimEnd();
 		let trim=line.trim();
@@ -304,7 +329,7 @@ function mdToAnsi(md) {
 				let codeType=trim.substring(3);
 				echo("inCode "+codeType);
 			}else{
-				result.push(ansiReplyBlock);
+				if (broken) result.push(ansiReplyBlock);
 			}
 		}else{
 			if (!inCode) {
@@ -315,6 +340,10 @@ function mdToAnsi(md) {
 					line = line.substring(level).trim();
 					line = ansiPurple + line + ansiReset;
 				}
+				// bullets
+				if (line.startsWith('-') || line.startsWith('*') || line.startsWith('+')) {
+					line = '• ' + line.substring(1).trim();
+				}
 				// bold
 				if (line.includes("**")) {
 					line = line.replace(/\*\*(.*?)\*\*/g, "\x1b[1m$1\x1b[0m");
@@ -322,10 +351,6 @@ function mdToAnsi(md) {
 				// italic
 				line = line.replace(/\*(.*?)\*/g, "\x1b[3m$1\x1b[0m");
 				line = line.replace(/_(.*?)_/g, "\x1b[3m$1\x1b[0m");
-				// bullets
-				if (line.startsWith('-') || line.startsWith('*') || line.startsWith('+')) {
-					line = '• ' + line.substring(1).trim();
-				}
 				// wordwrap
 				line=wordWrap(line,terminalColumns);
 			}
@@ -341,12 +366,6 @@ async function hashFile(filePath) {
 	const hashBuffer = await crypto.subtle.digest("SHA-256", fileContent);
 	const hashArray = new Uint8Array(hashBuffer);
 	return Array.from(hashArray).map(byte => byte.toString(16).padStart(2, '0')).join('');
-}
-
-const fileExists = await exists(rohaPath);
-if (!fileExists) {
-	await Deno.writeTextFile(rohaPath, JSON.stringify(emptyRoha));
-	echo("Created a new roha.json");
 }
 
 async function readRoha(){
@@ -414,6 +433,14 @@ function fileType(extension){
 	return contentType(extension) || 'application/octet-stream';
 }
 
+const textExtensions = [
+	"js", "txt", "json", "md",
+	"css","html", "svg",
+	"cpp", "c", "h", "cs",
+	"sh", "bat",
+	"log","py","csv","xml","ini"
+];
+
 async function shareFile(path,tag) {
 	let fileContent=null;
 	try {
@@ -436,7 +463,7 @@ async function shareFile(path,tag) {
 				let txt = decoder.decode(fileContent);
 				if(txt.length){
 					let metadata=JSON.stringify({path,length,type,tag});
-					rohaPush(metadata);	
+					rohaPush(metadata);
 					rohaPush(txt);
 				}
 			}else{
@@ -444,13 +471,13 @@ async function shareFile(path,tag) {
 				const mimeType = fileType(extension);
 
 				let metadata=JSON.stringify({path,length,type,mimeType,tag});
-				rohaPush(metadata);	
+				rohaPush(metadata);
 				let binary=`File content: MIME=${mimeType}, Base64=${base64Encoded}`;
 				rohaPush(binary);
 			}
 		}
 	}
-	if(roha.config.verbose)echo("roha shared file " + path);
+//	if(roha.config.verbose)echo("roha shared file " + path);
 	if (!rohaShares.includes(path)) rohaShares.push(path);
 }
 
@@ -464,12 +491,10 @@ async function commitShares(tag) {
 			validShares.push(share);
 			continue;
 		}
-
 		try {
 			const info = await Deno.stat(share.path);
 			const modified = share.modified !== info.mtime.getTime();
 			const isShared = rohaShares.includes(share.path);
-
 			if (modified || !isShared) {
 				await shareFile(share.path,tag);
 				share.modified = info.mtime.getTime();
@@ -509,11 +534,14 @@ async function setTag(name,note){
 function listTags(){
 	let tags=roha.tags||{};
 	let keys=Object.keys(tags);
+	let list=[];
 	for(let i=0;i<keys.length;i++){
 		let tag=tags[keys[i]];
 		const name=tag.name||"?????";
 		echo(i,name,"["+tag.info.join(",")+"]");
+		list.push(name);
 	}
+	tagList=list;
 }
 
 function listAccounts(){
@@ -588,7 +616,7 @@ async function callCommand(command) {
 			case "load":
 				let save=words[1];
 				if(save){
-					if(!isNaN(save)) save=roha.saves[save|0];
+					if(save.length && !isNaN(save)) save=roha.saves[save|0];
 					if(roha.saves.includes(save)){
 						let history=await loadHistory(save);
 						rohaHistory=history;
@@ -604,7 +632,7 @@ async function callCommand(command) {
 			case "model":
 				let name=words[1];
 				if(name){
-					if(!isNaN(name)) name=modelList[name|0];
+					if(name.length&&!isNaN(name)) name=modelList[name|0];
 					if(modelList.includes(name)){
 						resetModel(name);
 					}
@@ -612,6 +640,7 @@ async function callCommand(command) {
 					for(let i=0;i<modelList.length;i++){
 						echo(i,modelList[i]);
 					}
+					listCommand="model";
 				}
 				break;
 			case "list":
@@ -818,7 +847,7 @@ async function chat() {
 			let line="";
 			if(listCommand){
 				line=prompt("#").trim();
-				if(line!="" && !isNaN(line)){
+				if(line.length && !isNaN(line)){
 					let index=line|0;
 					await callCommand(listCommand+" "+index);
 				}

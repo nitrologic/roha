@@ -1,3 +1,14 @@
+const postFile={
+	"role": "user",
+	"name": "roha",
+	"content": [
+		{ "type": "text", "text": "what's in this image?" },
+		{ "type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}",}
+	]
+}
+
+
+
 > /dump
 roha shared file C:/nitrologic/roha/roha.js
 [model deepseek-chat@deepseek 49600 949 264642 189931]
