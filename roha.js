@@ -140,6 +140,7 @@ const encoder = new TextEncoder();
 const appDir = Deno.cwd();
 const rohaPath = resolve(appDir,"roha.json");
 const accountsPath = resolve(appDir,"accounts.json");
+const cachePath=resolve(appDir,"cache");
 
 const modelAccounts = JSON.parse(await Deno.readTextFile(accountsPath));
 const modelList=[];
@@ -679,7 +680,11 @@ async function onCall(toolCall) {
 			let args=JSON.parse(toolCall.function.arguments);
 			echo(args.contentType);
 			echo(args.content);
-			break;
+			let name= `submission_${Date.now()}.txt`
+			let filePath = resolve(cachePath,name);
+			await Deno.writeTextFile(filePath, args.content);
+			echo("File saved to:", filePath);
+			return { success: true, path: filePath };
 		case "get_current_time":
 			return {time: new Date().toISOString()};
 		case "annotate_roha":
@@ -696,6 +701,7 @@ async function onCall(toolCall) {
 				return { error };
 			}
 	}
+	console.error("onCall error - call simon");
 }
 
 async function relay() {
