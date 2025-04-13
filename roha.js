@@ -23,7 +23,7 @@ const flagNames={
 };
 
 const emptyRoha={
-	config:{commitonstart:true,ansi:true,speed:true},
+	config:{commitonstart:true,ansi:true,speed:true,verbose:false},
 	saves:[],
 	tags:{},
 	sharedFiles:[]
@@ -696,7 +696,8 @@ async function onCall(toolCall) {
 			let args=JSON.parse(toolCall.function.arguments);
 			echo(args.contentType);
 			echo(args.content);
-			let name= `submission_${Date.now()}.txt`
+			let timestamp=Math.floor(Date.now()/1000).toString(16);
+			let name= "submission-"+timestamp+".txt";
 			let filePath = resolve(cachePath,name);
 			await Deno.writeTextFile(filePath, args.content);
 			echo("File saved to:", filePath);
