@@ -1,16 +1,15 @@
 roha roadmap
 
-steam api
+saves should be annotable objects like tags
+server sandbox with steam api
 autosave on exit
 tag command features
 retire use of deno prompt
 auto dump on file change
 fix black text on dark background in light mode terminals
 sharedFiles [] => {} to avoid duplicants
-remove shares if file not found on stat
-account selection
+empty shares if file not found on stat
 command auto complete 
 up down arrow key triggers
-listen command for network use
 a code command that lists previous code blocks
 color codes for different languages

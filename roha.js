@@ -717,13 +717,19 @@ async function onCall(toolCall) {
 				const { name, type, description } = JSON.parse(toolCall.function.arguments || "{}");
 				switch(type){
 					case "tag":
+						if(!(name in roha.tags)) throw("tag not found");
 						roha.tags[name].description=description;
+						break;
+					case "save":
+						if(!(name in roha.saves)) throw("save not found");
+						roha.saves[name].description=description;
+						break;
 				}
 				await writeRoha(); // Persist changes
 				return { success: true, updated: 1 };
 			} catch (error) {
 				echo("annotate_roha error:",error);
-				return { error };
+				return { success: false, updated: 0 };
 			}
 	}
 	console.error("onCall error - call simon");
