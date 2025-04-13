@@ -1,3 +1,90 @@
+latest crash
+ and `<content>` with the file's text or Base64-encoded content.
+
+3. Example:
+   For a `test.txt` file with the content `Hello, world!`, you could run:
+
+   /submit_file text/plain Hello, world!
+
+   For binary files, encode the content in Base64 first.
+
+4. Verify Output:
+   The tool should echo `SUBMISSION RECEIVED` and add the file to the
+conversation history.
+
+Let me know if you'd like help crafting a specific test case!
+
+
+> could you invoke the submit_file tool with that example
+> 
+Error during API call: Error: 422 Failed to deserialize the JSON body into the target type: messages[53]: missing field `content` at line 243 column 3
+    at Function.generate (https://deno.land/x/openai@v4.67.2/error.ts:97:14)
+    at OpenAI.makeStatusError (https://deno.land/x/openai@v4.67.2/core.ts:498:21)
+    at OpenAI.makeRequest (https://deno.land/x/openai@v4.67.2/core.ts:580:24)
+    at eventLoopTick (ext:core/01_core.js:175:7)
+    at async relay (file:///Users/simon/nitro/roha/roha.js:714:22)
+    at async chat (file:///Users/simon/nitro/roha/roha.js:812:5) {
+  status: 422,
+  headers: {
+    "access-control-allow-credentials": "true",
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "92f7ab593fb5d9a8-AKL",
+    "content-length": "116",
+    "content-type": "text/plain; charset=utf-8",
+    date: "Sun, 13 Apr 2025 02:52:47 GMT",
+    server: "cloudflare",
+    "set-cookie": "__cf_bm=NyX3Neh65BuCihyIxKAWW47YkbY9BjRfi0VA1w.R5Rk-1744512767-1.0.1.1-NTTVS6ehJyt2517woKJwFdVcxksoQyF3R_Lrf0jHsg3KV9rM.DjNqSc_28mWI5iQBRFSDyg5_Rj4Bjz.mACw7DD8kxaIrtL06wkZ8PvQmmg; path=/; expires=Sun, 13-Apr-25 03:22:47 GMT; domain=.deepseek.com; HttpOnly; Secure; SameSite=None",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    vary: "origin, access-control-request-method, access-control-request-headers",
+    "x-content-type-options": "nosniff",
+    "x-ds-trace-id": "8559facb72216e33b7f15b29a26279a5"
+  },
+  error: undefined,
+  code: undefined,
+  param: undefined,
+  type: undefined,
+  request_id: undefined
+}
+[model deepseek-chat 12824 28 50377 46576]
+SUBMISSION RECEIVED
+
+> 
+
+latest crash 2
+
+> can you invoke the submit_file tool
+> 
+Error during API call: Error: 422 Failed to deserialize the JSON body into the target type: messages[54]: missing field `content` at line 235 column 3
+    at Function.generate (https://deno.land/x/openai@v4.67.2/error.ts:97:14)
+    at OpenAI.makeStatusError (https://deno.land/x/openai@v4.67.2/core.ts:498:21)
+    at OpenAI.makeRequest (https://deno.land/x/openai@v4.67.2/core.ts:580:24)
+    at eventLoopTick (ext:core/01_core.js:175:7)
+    at async relay (file:///Users/simon/nitro/roha/roha.js:714:22)
+    at async chat (file:///Users/simon/nitro/roha/roha.js:812:5) {
+  status: 422,
+  headers: {
+    "access-control-allow-credentials": "true",
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "92f794ea5f45d9b3-AKL",
+    "content-length": "116",
+    "content-type": "text/plain; charset=utf-8",
+    date: "Sun, 13 Apr 2025 02:37:28 GMT",
+    server: "cloudflare",
+    "set-cookie": "__cf_bm=0AbUMiAV9igAX50tDMnluQ7xv0JuEBU2PczG3_GV4bg-1744511848-1.0.1.1-aGzs6B49aWBATzzMMM1fl3WJHYa83LStXER3j2_e0cNHIxjxCqs9xLsWGeJLj6qrWacv5_8Xe7XE1eB0CTvljwL1KBykKxx7DuVUJjbn.GA; path=/; expires=Sun, 13-Apr-25 03:07:28 GMT; domain=.deepseek.com; HttpOnly; Secure; SameSite=None",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    vary: "origin, access-control-request-method, access-control-request-headers",
+    "x-content-type-options": "nosniff",
+    "x-ds-trace-id": "5aecb97ef01cbb9211ecf325e0a1c6ce"
+  },
+  error: undefined,
+  code: undefined,
+  param: undefined,
+  type: undefined,
+  request_id: undefined
+}
+[model deepseek-chat 19369 4096 53779 69578]
+SUBMISSION RECEIVED
+
 > how does this sound
 > inlist mode so prompt result can be processed as an index and previous command invoked again with argument
 >

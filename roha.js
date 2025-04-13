@@ -32,6 +32,8 @@ const emptyRoha={
 let roha=emptyRoha;
 let rohaCalls=0;
 
+let listCommand="";
+
 const textExtensions = [
 	"js", "txt", "json", "md",
 	"css","html", "svg",
@@ -58,22 +60,26 @@ const rohaTools = [{
 		description: "Submit a file for review",
 		parameters: {
 			type: "object",
-			properties: {},
-			required: []
+			properties: {
+				contentType:{type:"string"},
+				content:{type:"string"}
+			},
+			required: ["contentType","content"]
 		}
 	}
 },{
 	type: "function",
 	function: {
-		name: "annotate_tag",
-		description: "Assign description to tag",
+		name: "annotate_roha",
+		description: "Set description of any roha object",
 		parameters: {
 			type: "object",
 			properties: {
-				tag: { type: "string" },
+				id: { type: "string" },
+				type: { type:"string" },
 		  		description: { type: "string" }
 			},
-			required: ["tag","description"]
+			required: ["id","type","description"]
 		}
 	}
 }];
@@ -182,11 +188,11 @@ function resetModel(name){
 //let grokModel = "grok-3-beta";
 //let grok = await connectModel("xai",true);
 
-let grokModel = "deepseek-chat";
-let grok = await connectModel("deepseek",true);
+//let grokModel = "deepseek-chat";
+//let grok = await connectModel("deepseek",true);
 
-//let grokModel = "o3-mini-2025-01-31";
-//let grok = await connectModel("openai",true);
+let grokModel = "o3-mini-2025-01-31";
+let grok = await connectModel("openai",true);
 
 let grokUsage = 0;
 
@@ -477,7 +483,7 @@ async function commitShares(tag) {
 	}
 
 	if (dirty) {
-		rohaHistory.push({role: "system",content:"Modified tagged shares, please /annotate_tag"});
+		rohaHistory.push({role: "system",content:"Please annotate tag type /annotate_roha"});
 	}
 
 	return dirty;
@@ -554,6 +560,7 @@ async function callCommand(command) {
 					for(let flag in flagNames){
 						echo((count++),flag,":",flagNames[flag],":",(roha.config[flag]?"true":"false"))
 					}
+					listCommand="config";
 				}
 				break;
 			case "time":
@@ -680,16 +687,22 @@ if(roha.config){
 
 async function onCall(toolCall) {
 	switch(toolCall.function.name) {
+		case "submit_file":
+			echo("SUBMISSION RECEIVED");
+			break;
 		case "get_current_time":
 			return {time: new Date().toISOString()};
-		case "annotate_tag":
+		case "annotate_roha":
 			try {
-				const { tag, description } = JSON.parse(toolCall.function.arguments || "{}");
-				roha.tags[tag].description=description;
+				const { id, type, description } = JSON.parse(toolCall.function.arguments || "{}");
+				switch(type){
+					case "tag":
+						roha.tags[id].description=description;
+				}
 				await writeRoha(); // Persist changes
 				return { success: true, updated: 1 };
 			} catch (error) {
-				echo("annotate_tag error:",error);
+				echo("annotate_roha error:",error);
 				return { error };
 			}
 	}
@@ -726,7 +739,7 @@ async function relay() {
 				// Add assistant message with tool_calls
 				rohaHistory.push({
 					role: "assistant",
-					content: choice.message.content || null,
+					content: choice.message.content || "",
 					tool_calls: toolCalls
 				});
 				// Add tool responses
@@ -765,7 +778,17 @@ async function chat() {
 		echo(ansiMoveToEnd);
 		while (true) {
 			await flush();
-			const line = prompt(rohaPrompt);
+			let line="";
+			if(listCommand){
+				line=prompt("#");
+				if(!isNaN(line)){
+					let index=line|0;
+					// trigger command with index and continue
+					// deepseek are you there for me?
+				}
+			}else{
+				line=prompt(rohaPrompt);
+			}
 			if (line === '') break;
 			if (line === "exit") {
 				echo("Ending the conversation...");
