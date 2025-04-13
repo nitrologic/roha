@@ -1,0 +1,12 @@
+function manageHistory(path) {
+	const indices = rohaHistory
+		.map((entry, index) => (entry.content.includes(`path=${path},`) ? index : -1))
+		.filter(index => index !== -1);
+	//echo(`manageHistory Found ${indices.length} history entries for ${path}`);
+	for(let i=indices.length-3;i>=0;i--){
+		let index=indices[i];
+		// remove the filetype and content message from biggest to smallest
+		// rohaHistory.splice(index,2);
+		rohaHistory[index+1].content=null;
+	}
+}

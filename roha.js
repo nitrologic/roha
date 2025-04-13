@@ -71,15 +71,15 @@ const rohaTools = [{
 	type: "function",
 	function: {
 		name: "annotate_roha",
-		description: "Set description of any roha object",
+		description: "Set description of any object",
 		parameters: {
 			type: "object",
 			properties: {
-				id: { type: "string" },
+				name: { type: "string" },
 				type: { type:"string" },
 		  		description: { type: "string" }
 			},
-			required: ["id","type","description"]
+			required: ["name","type","description"]
 		}
 	}
 }];
@@ -185,14 +185,14 @@ function resetModel(name){
 
 // persistant model selection not quite there
 
-//let grokModel = "grok-3-beta";
-//let grok = await connectModel("xai",true);
+let grokModel = "grok-3-beta";
+let grok = await connectModel("xai",true);
 
 //let grokModel = "deepseek-chat";
 //let grok = await connectModel("deepseek",true);
 
-let grokModel = "o3-mini-2025-01-31";
-let grok = await connectModel("openai",true);
+//let grokModel = "o3-mini-2025-01-31";
+//let grok = await connectModel("openai",true);
 
 let grokUsage = 0;
 
@@ -218,19 +218,6 @@ function listSaves(){
 
 function resetHistory(){
 	rohaHistory = [{role:"system",content:rohaMihi}];
-}
-
-function manageHistory(path) {
-	const indices = rohaHistory
-		.map((entry, index) => (entry.content.includes(`path=${path},`) ? index : -1))
-		.filter(index => index !== -1);
-	//echo(`manageHistory Found ${indices.length} history entries for ${path}`);
-	for(let i=indices.length-3;i>=0;i--){
-		let index=indices[i];
-		// remove the filetype and content message from biggest to smallest
-		// rohaHistory.splice(index,2);
-		rohaHistory[index+1].content=null;
-	}
 }
 
 async function saveHistory() {
@@ -483,7 +470,8 @@ async function commitShares(tag) {
 	}
 
 	if (dirty) {
-		rohaHistory.push({role: "system",content:"Please annotate tag type /annotate_roha"});
+		let invoke="Please annotate roha name "+tag+" type tag /annotate_roha";
+		rohaHistory.push({role: "system",content:invoke});
 	}
 
 	return dirty;
@@ -688,16 +676,18 @@ if(roha.config){
 async function onCall(toolCall) {
 	switch(toolCall.function.name) {
 		case "submit_file":
-			echo("SUBMISSION RECEIVED");
+			let args=JSON.parse(toolCall.function.arguments);
+			echo(args.contentType);
+			echo(args.content);
 			break;
 		case "get_current_time":
 			return {time: new Date().toISOString()};
 		case "annotate_roha":
 			try {
-				const { id, type, description } = JSON.parse(toolCall.function.arguments || "{}");
+				const { name, type, description } = JSON.parse(toolCall.function.arguments || "{}");
 				switch(type){
 					case "tag":
-						roha.tags[id].description=description;
+						roha.tags[name].description=description;
 				}
 				await writeRoha(); // Persist changes
 				return { success: true, updated: 1 };
@@ -727,6 +717,7 @@ async function relay() {
 		for (const choice of completion.choices) {
 			let calls = choice.message.tool_calls;
 			if (calls) {
+				echo("relay calls in progress");
 				// Generate tool_calls with simple, unique IDs
 				const toolCalls = calls.map((tool, index) => ({
 					id: `call_${rohaCalls++}`,
@@ -746,12 +737,17 @@ async function relay() {
 				for (let i = 0; i < calls.length; i++) {
 					const tool = calls[i];
 					const result = await onCall(tool);
-					rohaHistory.push({
-						role: "tool",
-						tool_call_id: toolCalls[i].id,
-						name: tool.function.name,
-						content: JSON.stringify(result)
-					});
+					if (result){
+						let content=JSON.stringify(result);
+						rohaHistory.push({
+							role: "tool",
+							tool_call_id: toolCalls[i].id,
+							name: tool.function.name,
+							content
+						});
+					}else{
+						echo("no oncall result");
+					}
 				}
 				return relay(); // Recursive call to process tool results
 			}
