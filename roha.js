@@ -164,21 +164,26 @@ async function connectAccount(account,silent) {
 	echo("Connecting to account:", account);
 	const config = modelAccounts[account];
 	if (!config) return null;
-	const apiKey = Deno.env.get(config.env);
-	const endpoint = new OpenAI({ apiKey, baseURL: config.url });
-	if(!silent){
-		for(const [key, value] of Object.entries(endpoint)){
-			let content=stringify(value);
-			echo("endpoint:"+key+":"+content);
+	try{
+		const apiKey = Deno.env.get(config.env);
+		const endpoint = new OpenAI({ apiKey, baseURL: config.url });
+		if(!silent){
+			for(const [key, value] of Object.entries(endpoint)){
+				let content=stringify(value);
+				echo("endpoint:"+key+":"+content);
+			}
 		}
+		const models = await endpoint.models.list();
+		for (const model of models.data) {
+			let name=model.id+"@"+account;
+			modelList.push(name);
+	//		if(verbose) echo("model:"+JSON.stringify(model));
+		}
+		return endpoint;
+	}catch(error){
+		echo(error);
 	}
-	const models = await endpoint.models.list();
-	for (const model of models.data) {
-		let name=model.id+"@"+account;
-		modelList.push(name);
-//		if(verbose) echo("model:"+JSON.stringify(model));
-	}
-	return endpoint;
+	return null;
 }
 
 function resetModel(name){
@@ -191,12 +196,12 @@ const rohaAccount={};
 
 for(let account in modelAccounts){
 	let endpoint = await connectAccount(account,true);
-	rohaAccount[account]=endpoint;
+	if(endpoint) rohaAccount[account]=endpoint;
 }
 
 //let grokModel = "grok-3-beta@xai";
-//let grokModel = "deepseek-chat@deepseek";
-let grokModel = "o3-mini-2025-01-31@openai";
+let grokModel = "deepseek-chat@deepseek";
+//let grokModel = "o3-mini-2025-01-31@openai";
 
 let grokUsage = 0;
 
