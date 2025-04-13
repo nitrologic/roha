@@ -1,5 +1,7 @@
 roha roadmap
 
+steam api
+inlist mode so prompt result can be processed as an index and previous command invoked again with argument
 consider ai query to manage shares , or function
 autosave on exit
 tag command features
