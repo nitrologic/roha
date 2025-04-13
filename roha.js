@@ -160,9 +160,9 @@ function stringify(value, seen = new WeakSet(), keyName = "") {
 	return `{${entries.join(",\n")}}`;
 }
 
-async function connectModel(name,silent) {
-	echo("Connecting to model:", name);
-	const config = modelAccounts[name];
+async function connectAccount(account,silent) {
+	echo("Connecting to account:", account);
+	const config = modelAccounts[account];
 	if (!config) return null;
 	const apiKey = Deno.env.get(config.env);
 	const endpoint = new OpenAI({ apiKey, baseURL: config.url });
@@ -174,7 +174,8 @@ async function connectModel(name,silent) {
 	}
 	const models = await endpoint.models.list();
 	for (const model of models.data) {
-		modelList.push(model.id);
+		let name=model.id+"@"+account;
+		modelList.push(name);
 //		if(verbose) echo("model:"+JSON.stringify(model));
 	}
 	return endpoint;
@@ -186,14 +187,16 @@ function resetModel(name){
 
 // persistant model selection not quite there
 
-let grokModel = "grok-3-beta";
-let grok = await connectModel("xai",true);
+const rohaAccount={};
 
-//let grokModel = "deepseek-chat";
-//let grok = await connectModel("deepseek",true);
+for(let account in modelAccounts){
+	let endpoint = await connectAccount(account,true);
+	rohaAccount[account]=endpoint;
+}
 
-//let grokModel = "o3-mini-2025-01-31";
-//let grok = await connectModel("openai",true);
+//let grokModel = "grok-3-beta@xai";
+//let grokModel = "deepseek-chat@deepseek";
+let grokModel = "o3-mini-2025-01-31@openai";
 
 let grokUsage = 0;
 
@@ -289,6 +292,8 @@ function mdToAnsi(md) {
 			inCode = !inCode;
 			if(inCode){
 				result.push(ansiCodeBlock);
+				let codeType=trim.substring(3);
+				echo("inCode "+codeType);
 			}else{
 				result.push(ansiReplyBlock);
 			}
@@ -538,10 +543,14 @@ async function callCommand(command) {
 				break;
 			case "config":
 				if(words.length>1){
-					const flag=words[1];
+					let flag=words[1].trim();
+					if(flag.length && !isNaN(flag)){
+						flag=Object.keys(flagNames)[flag|0];
+						echo("flag",flag);
+					}
 					if(flag in flagNames){
 						roha.config[flag]=!roha.config[flag];
-						echo(flagNames[flag]+" is "+(roha.config[flag]?"true":"false"));
+						echo(flag+" - "+flagNames[flag]+" is "+(roha.config[flag]?"true":"false"));
 						await writeRoha();
 					}
 				}else{
@@ -662,7 +671,9 @@ async function callCommand(command) {
 }
 
 echo(rohaTitle);
-echo("connected to "+grok.baseURL);
+
+//echo("connected to "+grok.baseURL);
+
 echo("running from "+rohaPath);
 
 await readRoha();
@@ -706,9 +717,13 @@ async function onCall(toolCall) {
 
 async function relay() {
 	try {
-		const payload = { model: grokModel, messages: rohaHistory, tools: rohaTools };
-		const completion = await grok.chat.completions.create(payload);
-		if (completion.model != grokModel) {
+		const modelAccount=grokModel.split("@");
+		let model=modelAccount[0];
+		let account=modelAccount[1];
+		let endpoint=rohaAccount[account];
+		const payload = { model, messages: rohaHistory, tools: rohaTools };
+		const completion = await endpoint.chat.completions.create(payload);
+		if (completion.model != model) {
 			echo("[relay model alert model:" + completion.model + " grokModel:" + grokModel + "]");
 		}
 		if (roha.config.verbose) {
@@ -782,12 +797,12 @@ async function chat() {
 			await flush();
 			let line="";
 			if(listCommand){
-				line=prompt("#");
-				if(!isNaN(line)){
+				line=prompt("#").trim();
+				if(line!="" && !isNaN(line)){
 					let index=line|0;
-					// trigger command with index and continue
-					// deepseek are you there for me?
+					await callCommand(listCommand+" "+index);
 				}
+				listCommand="";
 			}else{
 				line=prompt(rohaPrompt);
 			}
