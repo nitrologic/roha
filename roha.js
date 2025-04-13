@@ -50,6 +50,8 @@ const emptyModel={
 const emptyTag={
 }
 
+// const emptyShare={path,size,modified,hash,tag,id}
+
 let roha=emptyRoha;
 let rohaCalls=0;
 let listCommand="";
@@ -61,7 +63,7 @@ let currentDir = Deno.cwd();
 var rohaHistory;
 
 function resetHistory(){
-	rohaHistory = [{role:"system",content:rohaMihi}];
+	rohaHistory = [{role:"system",name:"roha",content:rohaMihi}];
 }
 
 function rohaPush(content){
@@ -250,6 +252,17 @@ function listShares(){
 	}
 }
 
+function listSharedFiles(){
+	const list=[];
+	let count=0;
+	for (const share of roha.sharedFiles) {
+		let tags="["+share.tag+"]";
+		echo((count++),share.path,share.size,tags);
+		list.push(share.id);
+	}
+	shareList=list;
+}
+
 function listSaves(){
 	let saves=roha.saves||[];
 	for(let i=0;i<saves.length;i++){
@@ -262,7 +275,7 @@ async function saveHistory() {
 		let timestamp=Math.floor(Date.now()/1000).toString(16);
 		let filename=".roha-save-"+timestamp+".json";
 		let line="history snapshot saved to "+filename;
-		rohaHistory.push({role: "system",content: line});
+		rohaHistory.push({role:"system",name:"roha",content:line});
 		await Deno.writeTextFile(filename, JSON.stringify(rohaHistory,null,"\t"));
 		echo(line);
 		roha.saves.push(filename);
@@ -281,7 +294,7 @@ async function loadHistory(filename){
 	} catch (error) {
 		console.error("Error restoring history:", error.message);
 		echo("console error");
-		history = [{ role: "system", content: "You are a helpful assistant."}];
+		history=[{role:"system",content: "You are a helpful assistant."}];
 	}
 	return history;
 }
@@ -388,6 +401,16 @@ async function writeRoha(){
 	}
 }
 
+async function resetRoha(){
+	rohaShares = [];
+	roha.sharedFiles=[];
+	roha.tags={};
+	await writeRoha();
+	resetHistory();
+	echo("resetRoha","All shares and history reset.");
+}
+
+
 function resolvePath(dir,filename){
 	let path=resolve(dir,filename);
 	path = path.replace(/\\/g, "/");
@@ -452,7 +475,7 @@ async function shareFile(path,tag) {
 	if(path.endsWith("rules.txt")){
 		let lines=decoder.decode(fileContent).split("\n");
 		for(let line of lines ){
-			if (line) rohaHistory.push({role: "system",content: line});
+			if (line) rohaHistory.push({role:"system",name:"roha.rule",content: line});
 		}
 	}else{
 		const length=fileContent.length;
@@ -515,7 +538,7 @@ async function commitShares(tag) {
 
 	if (dirty) {
 		let invoke="Please annotate roha name "+tag+" type tag /annotate_roha";
-		rohaHistory.push({role: "system",content:invoke});
+		rohaHistory.push({role:"system",name:"roha",content:invoke});
 	}
 
 	return dirty;
@@ -528,7 +551,7 @@ async function setTag(name,note){
 	tags[name]=tag;
 	roha.tags=tags;
 	await writeRoha();
-	rohaHistory.push({role: "system",content: `New tag "${name}" added. Describe all shares with this tag.`});
+	rohaHistory.push({role:"system",name:"roha",content: `New tag "${name}" added. Describe all shares with this tag.`});
 }
 
 function listTags(){
@@ -538,7 +561,9 @@ function listTags(){
 	for(let i=0;i<keys.length;i++){
 		let tag=tags[keys[i]];
 		const name=tag.name||"?????";
-		echo(i,name,"["+tag.info.join(",")+"]");
+		echo(i,name,"("+tag.info.length+")");
+		let info=tag.description;
+		if(info) echo("",info);
 		list.push(name);
 	}
 	tagList=list;
@@ -609,8 +634,9 @@ async function callCommand(command) {
 				let history=rohaHistory;
 				let n=history.length;
 				for(let i=0;i<n;i++){
-					let content=flatten(history[i].content).substring(0,50);
-					echo(i,history[i].role,content);
+					let item=history[i];
+					let content=flatten(history[i].content).substring(0,90);
+					echo(i,item.role,item.name||"guest",content);
 				}
 				break;
 			case "load":
@@ -644,17 +670,10 @@ async function callCommand(command) {
 				}
 				break;
 			case "list":
-				for (const share of roha.sharedFiles) {
-					echo("share path:"+share.path+" size:"+share.size);
-				}
+				await listSharedFiles();
 				break;
 			case "reset":
-				rohaShares = [];
-				roha.sharedFiles=[];
-				roha.tags={};
-				await writeRoha();
-				resetHistory();
-				echo("All shares and history reset.");
+				await resetRoha();
 				break;
 			case "cd":
 				if(words.length>1){
