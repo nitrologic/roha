@@ -1,4 +1,5 @@
 # roha features under consideration
+
 ---
 
 **Model-Agnostic Accounts**
@@ -88,5 +89,4 @@ history and config automatically. (40 loc)
 
 Tab-based command and path suggestions.
 
-Handler for partial input matching
-and display. (80 loc)
+Handler for partial input matching and display. (80 loc)
