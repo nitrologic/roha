@@ -203,7 +203,7 @@ async function log(lines){
 }
 
 async function flush() {
-	const delay = roha.config.slow ? 40 : 0;
+	const delay = roha.config.slow ? 120 : 0;
 	for (const line of outputBuffer) {
 		console.log(line);
 		log(line);
@@ -282,7 +282,7 @@ function stringify(value, seen = new WeakSet(), keyName = "") {
 }
 
 async function connectAccount(account) {
-	let verbose=roha.config.verbose;
+	let verbose=false;//roha.config.verbose;
 	echo("Connecting to account:", account);
 	const config = modelAccounts[account];
 	if (!config) return null;
@@ -629,7 +629,7 @@ async function setTag(name,note){
 //	let invoke=`New tag "${name}" added. Describe all shares with this tag.`;
 //	rohaHistory.push({role:"system",content:invoke});
 }
-function listCounts(){
+function listCounters(){
 	let keys=Object.keys(roha.counters);
 	let i=0;
 	for(let key of keys){
@@ -682,8 +682,8 @@ async function callCommand(command) {
 	let words = command.split(" ",2);
 	try {
 		switch (words[0]) {
-			case "count":
-				listCounts();
+			case "counter":
+				listCounters();
 				break;
 			case "tag":
 				await listTags();
@@ -1042,6 +1042,32 @@ async function chat() {
 }
 
 
+async function runCode(path,cwd) {
+	try {
+		const readAllow = `--allow-read=${cwd}`;
+		const writeAllow = `--allow-write=${cwd}`;
+		const cmd = ["deno", "run", "--no-remote", readAllow, writeAllow, path];
+		const process = Deno.run({ cmd, stdout: "piped", stderr: "piped" });
+		const [stdout, stderr] = await Promise.all([process.output(), process.stderrOutput()]);
+		const status = await process.status();
+		process.close();
+		return {
+			success: status.success,
+			output: new TextDecoder().decode(stdout),
+			error: new TextDecoder().decode(stderr)
+		};
+	} catch (err) {
+		return { success: false, output: "", error: err.message };
+	}
+}
+
+
+//await runCode("isolation/test.js","isolation");
+
+let result = await runCode("isolation/test.js", "isolation");
+echo("RunCode Result:", result.success ? "Success" : "Failed");
+if (result.output) echo("Output:", result.output);
+if (result.error) echo("Error:", result.error);
 // todo: add save on exit
 
 Deno.addSignalListener("SIGINT", () => {Deno.exit(0);});

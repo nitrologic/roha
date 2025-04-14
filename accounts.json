@@ -1,4 +1,8 @@
 {
+	"gemini":{
+		"env":"GEMINI_API_KEY",
+		"url":"https://generativelanguage.googleapis.com/v1beta/openai"
+	},
 	"deepseek":{
 		"env":"DEEPSEEK_API_KEY",
 		"url":"https://api.deepseek.com"

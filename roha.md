@@ -68,6 +68,10 @@ Select an AI model.
 
 User can choose a model by name or index from the accounts available.
 
+### /counters
+
+List the internal application counters.
+
 ### /tag
 
 Describe all tags in use.
@@ -78,12 +82,6 @@ Displays tag name, count of shares tagged and description.
 
 Display current account information.
 
-### /load
-
-Load a saved conversation history snapshot.
-
-User can specify a save index or file name to restore previous chats.
-
 ### /save [name]
 
 Save the current conversation history. 
@@ -91,6 +89,13 @@ Save the current conversation history.
 Creates a snapshot file of the conversation.
 
 The default name is currently .roa-save-HEX32_TIME.json
+
+### /load
+
+Load a saved conversation history snapshot.
+
+User can specify a save index or file name to restore previous chats.
+
 
 ### /time
 

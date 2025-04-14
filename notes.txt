@@ -1,3 +1,14 @@
+with model models/gemini-2.5-pro-preview-03-25@gemini true
+
+>
+Error during API call: Error: 429 status code (no body)
+    at Function.generate (https://deno.land/x/openai@v4.67.2/error.ts:101:14)
+    at OpenAI.makeStatusError (https://deno.land/x/openai@v4.67.2/core.ts:498:21)
+    at OpenAI.makeRequest (https://deno.land/x/openai@v4.67.2/core.ts:580:24)
+    at eventLoopTick (ext:core/01_core.js:175:7)
+
+
+
 Current topic
 
 new logging is under test
