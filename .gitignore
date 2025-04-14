@@ -3,3 +3,5 @@ roha.json
 .roha-save*.json
 bin
 saves
+.transmission*.json
+

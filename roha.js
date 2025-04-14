@@ -351,8 +351,8 @@ function listSaves(){
 async function saveHistory(name) {
 	try {
 		let timestamp=Math.floor(Date.now()/1000).toString(16);
-		let filename=(name||".roha-save-"+timestamp)+".json";
-		let line="history snapshot saved to "+filename;
+		let filename=(name||".transmission-"+timestamp)+".json";
+		let line="roha chat history snapshot saved to "+filename;
 		rohaHistory.push({role:"system",content:line});
 		await Deno.writeTextFile(filename, JSON.stringify(rohaHistory,null,"\t"));
 		echo(line);
@@ -855,6 +855,12 @@ if(roha.config){
 	roha.config={};
 }
 
+function extensionForType(contentType) {
+    if (contentType.includes("markdown")) return ".md";
+    if (contentType.includes("json")) return ".json";
+    return ".txt";
+  }
+
 async function onCall(toolCall) {
 	switch(toolCall.function.name) {
 		case "submit_file":
@@ -862,7 +868,8 @@ async function onCall(toolCall) {
 			echo(args.contentType);
 			echo(args.content);
 			let timestamp=Math.floor(Date.now()/1000).toString(16);
-			let name= "submission-"+timestamp+".txt";
+			let extension=extensionForType(args.contentType)
+			let name= "submission-"+timestamp+extension;
 			let filePath = resolve(cachePath,name);
 			await Deno.writeTextFile(filePath, args.content);
 			echo("File saved to:", filePath);
