@@ -4,6 +4,21 @@ A command line application designed to chat and share files.
 
 ## roha Commands
 
+### /config
+
+Toggle configuration flags.
+
+Adjust settings to suit current preferences.
+
+Default values are typically:
+
+0 commitonstart : commit shared files on start : true
+1 ansi : markdown ANSI rendering : true
+2 slow : output at reading speed : true
+3 verbose : emit debug information : true
+4 broken : ansi background blocks : false
+5 logging : log all output to file : true
+
 ### /list
 
 Display all shared files.
@@ -27,12 +42,6 @@ Posts new versions of file content if modified.
 ### /reset
 
 Clear all shared files and conversation history.
-
-### /config
-
-Toggle configuration flags (like ANSI rendering or auto-dump on start).
-
-Adjust settings to suit current preferences.
 
 ### /history
 
@@ -75,11 +84,13 @@ Load a saved conversation history snapshot.
 
 User can specify a save index or file name to restore previous chats.
 
-### /save
+### /save [name]
 
 Save the current conversation history. 
 
 Creates a snapshot file of the conversation.
+
+The default name is currently .roa-save-HEX32_TIME.json
 
 ### /time
 

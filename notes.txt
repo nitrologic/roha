@@ -1,6 +1,41 @@
 Current topic
 
-escape key needs timeout
+new logging is under test
+
+Previous notes
+
+old code (ignore)
+
+// no raw mode version
+
+async function prompt2b(message) {
+	if(message) {
+		await writer.write(encoder.encode(message));
+		await writer.ready;
+	}
+	while (true) {
+		let line=decoder.decode(inputBuffer);
+		let esc=line.indexOf("\x1B");
+		if(esc!=-1){
+			Deno.exit(0);
+		}
+		let eol=line.indexOf("\n");
+		if(eol!=-1){
+			line=line.substring(0,eol);
+			const bytes = encoder.encode(line).length;
+			inputBuffer=inputBuffer.slice(bytes+1);
+			return line.trim();
+		}
+		const { value, done } = await reader.read();
+		if (done) return line;
+		const buffer = new Uint8Array(inputBuffer.length + value.length);
+		buffer.set(inputBuffer);
+		buffer.set(value, inputBuffer.length);
+		inputBuffer = buffer;
+	}
+}
+
+escape key needs timeout (solved)
 
 async function readWithTimeout(reader, timeoutMs = 100) {                                                                   
   return await Promise.race([                                                                                               

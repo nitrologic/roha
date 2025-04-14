@@ -37,9 +37,14 @@ async function prompt2(message) {
 					}
 					break;
 				} else if (byte === 0x0A || byte === 0x0D) { // Enter key
-					const line = decoder.decode(inputBuffer);
 					await writer.write(encoder.encode("\r\n"));
-					return line.trim();
+					let line = decoder.decode(inputBuffer);
+					line=line.trim();
+					if(roha.config.logging){
+						let log=">>"+line;
+						await Deno.writeTextFile("roha.log",log,{ append: true });					
+					}
+					return line;
 				} else {
 					await writer.write(new Uint8Array([byte]));
 					const buf = new Uint8Array(inputBuffer.length + 1);
@@ -54,35 +59,6 @@ async function prompt2(message) {
 	}
 }
 
-// not raw version
-
-async function prompt2b(message) {
-	if(message) {
-		await writer.write(encoder.encode(message));
-		await writer.ready;
-	}
-	while (true) {
-		let line=decoder.decode(inputBuffer);
-		let esc=line.indexOf("\x1B");
-		if(esc!=-1){
-			Deno.exit(0);
-		}
-		let eol=line.indexOf("\n");
-		if(eol!=-1){
-			line=line.substring(0,eol);
-			const bytes = encoder.encode(line).length;
-			inputBuffer=inputBuffer.slice(bytes+1);
-			return line.trim();
-		}
-		const { value, done } = await reader.read();
-		if (done) return line;
-		const buffer = new Uint8Array(inputBuffer.length + value.length);
-		buffer.set(inputBuffer);
-		buffer.set(value, inputBuffer.length);
-		inputBuffer = buffer;
-	}
-}
-
 const rohaTitle="nitrologic chat client";
 
 const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
@@ -94,7 +70,8 @@ const flagNames={
 	ansi : "markdown ANSI rendering",
 	slow : "output at reading speed",
 	verbose : "emit debug information",
-	broken : "ansi background blocks"
+	broken : "ansi background blocks",
+	logging : "log all output to file"
 };
 
 const emptyRoha={
@@ -192,7 +169,7 @@ const rohaTools = [{
 			properties: {
 				name: { type: "string" },
 				type: { type:"string" },
-		  		description: { type: "string" }
+				description: { type: "string" }
 			},
 			required: ["name","type","description"]
 		}
@@ -219,6 +196,11 @@ function echo(){
 }
 
 async function flush() {
+	if (roha.config.logging) {
+		let log=outputBuffer.join("\n");
+		let timestamp=Math.floor(Date.now()/1000).toString(16);
+		await Deno.writeTextFile("roha.log",log,{ append: true });
+	}
 	const delay = roha.config.slow ? 40 : 0;
 	for (const line of outputBuffer) {
 		console.log(line);
@@ -367,10 +349,10 @@ function listSaves(){
 	}
 }
 
-async function saveHistory() {
+async function saveHistory(name) {
 	try {
 		let timestamp=Math.floor(Date.now()/1000).toString(16);
-		let filename=".roha-save-"+timestamp+".json";
+		let filename=(name||".roha-save-"+timestamp)+".json";
 		let line="history snapshot saved to "+filename;
 		rohaHistory.push({role:"system",content:line});
 		await Deno.writeTextFile(filename, JSON.stringify(rohaHistory,null,"\t"));
@@ -768,7 +750,8 @@ async function callCommand(command) {
 				}
 				break;
 			case "save":
-				saveHistory();
+				let savename=words.slice(1).join(" ");
+				saveHistory(savename);
 				await writeRoha();
 				break;
 			case "model":
@@ -780,7 +763,9 @@ async function callCommand(command) {
 					}
 				}else{
 					for(let i=0;i<modelList.length;i++){
-						echo(i,modelList[i]);
+						let name=modelList[i];
+						let attr=(name==grokModel)?"*":"";
+						echo(i,name,attr);
 					}
 					listCommand="model";
 				}
