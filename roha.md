@@ -2,7 +2,19 @@
 
 A command line application designed to chat and share files.
 
-## roha Commands
+## roha machine interface
+
+The roha functional interface uses tool.
+
+See the OpenAI API spec for more details.
+
+### read_time
+
+
+## roha user interface
+
+commands with no arguments may often prompt for a # index from
+the items displayed
 
 ### /config
 

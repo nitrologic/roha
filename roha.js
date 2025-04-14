@@ -132,7 +132,7 @@ resetHistory();
 const rohaTools = [{
 	type: "function",
 	function:{
-		name: "get_current_time",
+		name: "read_time",
 		description: "Returns current time in UTC",
 		parameters: {
 			type: "object",
@@ -864,6 +864,8 @@ function extensionForType(contentType) {
 async function onCall(toolCall) {
 	let verbose=roha.config.verbose;
 	switch(toolCall.function.name) {
+		case "read_time":
+			return {time: new Date().toISOString()};
 		case "submit_file":
 			let args=JSON.parse(toolCall.function.arguments);
 			echo(args.contentType);
@@ -875,8 +877,6 @@ async function onCall(toolCall) {
 			await Deno.writeTextFile(filePath, args.content);
 			echo("File saved to:", filePath);
 			return { success: true, path: filePath };
-		case "get_current_time":
-			return {time: new Date().toISOString()};
 		case "annotate_roha":
 			try {
 				const { name, type, description } = JSON.parse(toolCall.function.arguments || "{}");
