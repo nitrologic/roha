@@ -8,6 +8,8 @@ import { contentType } from "https://deno.land/std@0.224.0/media_types/mod.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import OpenAI from "https://deno.land/x/openai@v4.67.2/mod.ts";
 
+const slowMillis = 20;
+
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
@@ -203,7 +205,7 @@ async function log(lines){
 }
 
 async function flush() {
-	const delay = roha.config.slow ? 120 : 0;
+	const delay = roha.config.slow ? slowMillis : 0;
 	for (const line of outputBuffer) {
 		console.log(line);
 		log(line);
@@ -1066,7 +1068,7 @@ async function runCode(path,cwd) {
 
 let result = await runCode("isolation/test.js", "isolation");
 echo("RunCode Result:", result.success ? "Success" : "Failed");
-if (result.output) echo("Output:", result.output);
+if (result.output) echo("[isolation] ", result.output);
 if (result.error) echo("Error:", result.error);
 // todo: add save on exit
 
