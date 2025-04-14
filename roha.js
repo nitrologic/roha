@@ -40,10 +40,7 @@ async function prompt2(message) {
 					await writer.write(encoder.encode("\r\n"));
 					let line = decoder.decode(inputBuffer);
 					line=line.trim();
-					if(roha.config.logging){
-						let log=">>"+line;
-						await Deno.writeTextFile("roha.log",log,{ append: true });					
-					}
+					log(">>"+line);					
 					return line;
 				} else {
 					await writer.write(new Uint8Array([byte]));
@@ -195,12 +192,16 @@ function echo(){
 	}
 }
 
-async function flush() {
-	if (roha.config.logging) {
-		let log=outputBuffer.join("\n");
-		let timestamp=Math.floor(Date.now()/1000).toString(16);
-		await Deno.writeTextFile("roha.log",log,{ append: true });
+async function log(line){
+	if(roha.config.logging){
+		const time = new Date().toISOString(); 
+		await Deno.writeTextFile("roha.log",time+" "+line,{ append: true });					
 	}
+}
+
+async function flush() {
+	let lines=outputBuffer.join("\n");
+	log(lines);
 	const delay = roha.config.slow ? 40 : 0;
 	for (const line of outputBuffer) {
 		console.log(line);
