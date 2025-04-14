@@ -40,7 +40,7 @@ async function prompt2(message) {
 					await writer.write(encoder.encode("\r\n"));
 					let line = decoder.decode(inputBuffer);
 					line=line.trim();
-					log(">>"+line);					
+					log(">>"+line);
 					return line;
 				} else {
 					await writer.write(new Uint8Array([byte]));
@@ -81,7 +81,6 @@ const emptyRoha={
 	},
 	tags:{},
 	models:{},
-	shares:{},
 	sharedFiles:[],
 	saves:[],
 	counters:{}
@@ -192,19 +191,25 @@ function echo(){
 	}
 }
 
-async function log(line){
+function stripAnsi(text) {
+	return text.replace(/\x1B\[\d+(;\d+)*[mK]/g, '');
+}
+
+async function log(lines){
 	if(roha.config.logging){
-		const time = new Date().toISOString(); 
-		await Deno.writeTextFile("roha.log",time+" "+line,{ append: true });					
+		const time = new Date().toISOString();
+		for(let line of lines.split("\n")){
+			line=stripAnsi(line);
+			await Deno.writeTextFile("roha.log",time+" "+line+"\n",{ append: true });
+		}
 	}
 }
 
 async function flush() {
-	let lines=outputBuffer.join("\n");
-	log(lines);
 	const delay = roha.config.slow ? 40 : 0;
 	for (const line of outputBuffer) {
 		console.log(line);
+		log(line);
 		await sleep(delay);
 	}
 	outputBuffer=[];
@@ -240,7 +245,6 @@ const cachePath=resolve(appDir,"cache");
 
 const modelAccounts = JSON.parse(await Deno.readTextFile(accountsPath));
 
-
 async function pathExists(path) {
 	try {
 		const stat = await Deno.stat(path);
@@ -264,12 +268,6 @@ for(let account in modelAccounts){
 	let endpoint = await connectAccount(account);
 	if(endpoint) rohaAccount[account]=endpoint;
 }
-
-let grokModel = roha.model||"deepseek-chat@deepseek";
-let grokFunctions=true;
-let grokUsage = 0;
-
-echo("prompting with ",grokModel);
 
 function stringify(value, seen = new WeakSet(), keyName = "") {
 	if (typeof value === "string") return value;
@@ -319,7 +317,7 @@ async function connectAccount(account) {
 async function resetModel(name){
 	grokModel=name;
 	grokFunctions=true;
-	echo("using model",name,grokFunctions)
+	echo("with model",name,grokFunctions)
 	await writeRoha;
 }
 
@@ -834,10 +832,15 @@ async function callCommand(command) {
 }
 
 echo(rohaTitle,"running from "+rohaPath);
-echo("use /help for latest");
-
 await readRoha();
 echo("shares count:",roha.sharedFiles.length)
+echo("use /help for latest");
+
+let grokModel = roha.model||"deepseek-chat@deepseek";
+let grokFunctions=true;
+let grokUsage = 0;
+
+echo("prompting with ",grokModel);
 
 let sessions=increment("sessions");
 if(sessions==0){
@@ -971,9 +974,9 @@ async function relay() {
 			}
 			reply = choice.message.content;
 			if (roha.config && roha.config.ansi) {
-				echo(ansiSaveCursor);
+//				echo(ansiSaveCursor);
 				echo(mdToAnsi(reply));
-				echo(ansiRestoreCursor);
+//				echo(ansiRestoreCursor);
 			} else {
 				echo(wordWrap(reply));
 			}
@@ -992,7 +995,7 @@ async function chat() {
 	dance:
 	while (true) {
 		let lines=[];
-		echo(ansiMoveToEnd);
+//		echo(ansiMoveToEnd);
 		while (true) {
 			await flush();
 			let line="";
