@@ -9,6 +9,81 @@ import { exists } from "https://deno.land/std/fs/exists.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import OpenAI from "https://deno.land/x/openai@v4.67.2/mod.ts";
 
+const decoder = new TextDecoder("utf-8");
+const encoder = new TextEncoder();
+
+const reader = Deno.stdin.readable.getReader();
+const writer = Deno.stdout.writable.getWriter();
+
+let inputBuffer = new Uint8Array(0);
+
+async function prompt2(message) {
+	if (message) {
+		await writer.write(encoder.encode(message));
+		await writer.ready;
+	}
+	Deno.stdin.setRaw(true);
+	try {
+		while (true) {
+			const { value, done } = await reader.read();
+			if (done || !value) break;
+			let byte0=0;
+			for (const byte of value) {
+				if (byte === 0x7F || byte === 0x08) { // Backspace
+					if (inputBuffer.length > 0) {
+						inputBuffer = inputBuffer.slice(0, -1);
+						await writer.write(new Uint8Array([0x08, 0x20, 0x08])); // Erase last char
+					}
+				} else if (byte0 === 0x1b) { // Escape sequence
+					console.log(byte);// up down left right A B C D but not escape
+//					Deno.exit(0);
+				} else if (byte === 0x0A || byte === 0x0D) { // Enter key
+					const line = decoder.decode(inputBuffer);
+					await writer.write(encoder.encode("\r\n"));
+					inputBuffer = new Uint8Array(0);
+					return line.trim();
+				} else {
+					await writer.write(new Uint8Array([byte]));
+					const buf = new Uint8Array(inputBuffer.length + 1);
+					buf.set(inputBuffer);
+					buf[inputBuffer.length] = byte;
+					inputBuffer = buf;
+				}
+				byte0=byte;
+			}
+		}
+	} finally {
+		Deno.stdin.setRaw(false);
+	}
+}
+
+async function prompt2b(message) {
+	if(message) {
+		await writer.write(encoder.encode(message));
+		await writer.ready;
+	}
+	while (true) {
+		let line=decoder.decode(inputBuffer);
+		let esc=line.indexOf("\x1B");
+		if(esc!=-1){
+			Deno.exit(0);
+		}
+		let eol=line.indexOf("\n");
+		if(eol!=-1){
+			line=line.substring(0,eol);
+			const bytes = encoder.encode(line).length;
+			inputBuffer=inputBuffer.slice(bytes+1);
+			return line.trim();
+		}
+		const { value, done } = await reader.read();
+		if (done) return line;
+		const buffer = new Uint8Array(inputBuffer.length + value.length);
+		buffer.set(inputBuffer);
+		buffer.set(value, inputBuffer.length);
+		inputBuffer = buffer;
+	}
+}
+
 const rohaTitle="nitrologic chat client";
 
 const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
@@ -72,7 +147,7 @@ let currentDir = Deno.cwd();
 var rohaHistory;
 
 function resetHistory(){
-	rohaHistory = [{role:"system",name:"roha",content:rohaMihi}];
+	rohaHistory = [{role:"system",content:rohaMihi}];
 }
 
 function rohaPush(content){
@@ -175,8 +250,6 @@ function wordWrap(text,cols=terminalColumns){
 // main roha application starts here
 
 const MaxFileSize=65536;
-const decoder = new TextDecoder("utf-8");
-const encoder = new TextEncoder();
 
 const appDir = Deno.cwd();
 const rohaPath = resolve(appDir,"roha.json");
@@ -237,7 +310,7 @@ async function connectAccount(account) {
 		for (const model of models.data) {
 			let name=model.id+"@"+account;
 			list.push(name);
-//			if() echo("model:"+JSON.stringify(model));
+			if(verbose) echo("model - ",JSON.stringify(model,null,"\t"));
 		}
 		list.sort();
 		modelList=modelList.concat(list);
@@ -287,7 +360,7 @@ async function saveHistory() {
 		let timestamp=Math.floor(Date.now()/1000).toString(16);
 		let filename=".roha-save-"+timestamp+".json";
 		let line="history snapshot saved to "+filename;
-		rohaHistory.push({role:"system",name:"roha",content:line});
+		rohaHistory.push({role:"system",content:line});
 		await Deno.writeTextFile(filename, JSON.stringify(rohaHistory,null,"\t"));
 		echo(line);
 		roha.saves.push(filename);
@@ -487,7 +560,7 @@ async function shareFile(path,tag) {
 	if(path.endsWith("rules.txt")){
 		let lines=decoder.decode(fileContent).split("\n");
 		for(let line of lines ){
-			if (line) rohaHistory.push({role:"system",name:"roha.rule",content: line});
+			if (line) rohaHistory.push({role:"system",content: line});
 		}
 	}else{
 		const length=fileContent.length;
@@ -550,7 +623,7 @@ async function commitShares(tag) {
 
 	if (dirty) {
 		let invoke="Please annotate roha name "+tag+" type tag /annotate_roha";
-		rohaHistory.push({role:"system",name:"roha",content:invoke});
+		rohaHistory.push({role:"system",content:invoke});
 	}
 
 	return dirty;
@@ -564,7 +637,7 @@ async function setTag(name,note){
 	roha.tags=tags;
 	await writeRoha();
 //	let invoke=`New tag "${name}" added. Describe all shares with this tag.`;
-//	rohaHistory.push({role:"system",name:"roha",content:invoke});
+//	rohaHistory.push({role:"system",content:invoke});
 }
 function listCounts(){
 	let keys=Object.keys(roha.counters);
@@ -726,7 +799,7 @@ async function callCommand(command) {
 					const filename = words[1];
 					const path = resolvePath(Deno.cwd(), filename);
 					const info = await Deno.stat(path);
-					const tag = prompt("Enter tag name (optional):");
+					const tag = await prompt2("Enter tag name (optional):");
 					if(info.isDirectory){
 						echo("Share directory path:",path);
 						await shareDir(path,tag);
@@ -762,7 +835,8 @@ async function callCommand(command) {
 	return dirty;
 }
 
-echo(rohaTitle,"running from "+rohaPath,"use /help for latest");
+echo(rohaTitle,"running from "+rohaPath);
+echo("use /help for latest");
 
 await readRoha();
 echo("shares count:",roha.sharedFiles.length)
@@ -836,7 +910,7 @@ function squashMessages(history) {
 				last=current;
 			}
 		}
-	}	
+	}
 	return squashed;
 }
 
@@ -925,14 +999,14 @@ async function chat() {
 			await flush();
 			let line="";
 			if(listCommand){
-				line=prompt("#").trim();
+				line=await prompt2("#");
 				if(line.length && !isNaN(line)){
 					let index=line|0;
 					await callCommand(listCommand+" "+index);
 				}
 				listCommand="";
 			}else{
-				line=prompt(rohaPrompt);
+				line=await prompt2(rohaPrompt);
 			}
 			if (line === '') break;
 			if (line === "exit") {
@@ -959,5 +1033,10 @@ async function chat() {
 		}
 	}
 }
+
+
+// todo: add save on exit
+
+Deno.addSignalListener("SIGINT", () => {Deno.exit(0);});
 
 chat();

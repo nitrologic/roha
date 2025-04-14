@@ -1,11 +1,10 @@
 roha roadmap
 
-support functionless models
+more testing with Deno.stdin.setRaw(true)
 saves should be annotable objects like tags
 server sandbox with steam api
 autosave on exit
 tag command features
-retire use of deno prompt
 auto dump on file change
 fix black text on dark background in light mode terminals
 sharedFiles [] => {} to avoid duplicants

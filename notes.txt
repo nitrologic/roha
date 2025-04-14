@@ -1,3 +1,125 @@
+up - "\033[A"
+down - "\033[B"
+left - "\033[D"
+right - "\033[C"
+
+latest issue with new prompt
+
+>/config
+0 commitonstart : commit shared files on start : true
+1 ansi : markdown ANSI rendering : true
+2 slow : output at reading speed : false
+3 verbose : emit debug information : false
+4 broken : ansi background blocks : false
+#error: Uncaught (in promise) TypeError: prompt2(...).trim is not a function
+                                line=await prompt2("#").trim();
+                                                        ^
+    at chat (file:///C:/nitrologic/roha/roha.js:957:29)
+    at eventLoopTick (ext:core/01_core.js:217:9)
+
+some models listed are not fit for purpose!
+
+
+> /model 3
+using model grok-2-image-1212@xai true
+> hi
+>
+Error during API call: Error: 400 "The model grok-2-image-1212 is an image model and is therefore not available on this endpoint. Please use a compatible endpoint such as https://api.x.ai/v1/images/generations. For more information, see https://docs.x.ai/docs/api-reference#image-generations"
+    at APIError.generate (https://deno.land/x/openai@v4.67.2/error.ts:77:14)
+    at OpenAI.makeStatusError (https://deno.land/x/openai@v4.67.2/core.ts:498:21)
+    at OpenAI.makeRequest (https://deno.land/x/openai@v4.67.2/core.ts:580:24)
+    at eventLoopTick (ext:core/01_core.js:178:7)
+    at async relay (file:///C:/nitrologic/roha/roha.js:850:22)
+    at async chat (file:///C:/nitrologic/roha/roha.js:957:5) {
+  status: 400,
+  headers: {
+
+    
+
+research
+
+this segment is paste from roha session
+
+> /share media
+Enter tag name (optional): media
+Share directory path: C:/nitrologic/roha/media
+> /dump media
+[model grok-2-1212@xai 24885 147 67216 83019]
+
+I've reviewed the shared files again, and here's what I've found:
+
+• roha.js: No new changes detected since the last review. The issues and recommendations remain the same.
+• notes.txt: No modifications detected.
+• plan.txt: No changes since last shared.
+• roha.json: The file size and hash have changed, indicating an update. The `sharedFiles` array now contains 24
+entries, up from 12, suggesting new files have been added or existing ones re-shared. The `sessions` counter has
+incremented to 2.
+
+If you'd like a detailed review of the new entries in `roha.json` or any other file, please let me know!
+
+
+
+> i am worried file content is not correct in roha.js, i will test history command for clues
+>
+[model grok-2-1212@xai 25059 72 92283 83798]
+
+I understand your concern about `roha.js`. Let's check the history command to see if there are any clues about recent
+changes or issues with the file content. If you run the `/history` command, we can review the recent interactions and
+see if there's anything related to `roha.js` that might help us understand what's going on.
+
+
+
+> /history
+0 system guest I am testing the roha chat client. You are a helpful assistant.
+1 user roha {"path":"C:/nitrologic/roha/accounts.json","length":250,"type":"application/json; charset=
+2 user roha { "deepseek":{ "env":"DEEPSEEK_API_KEY", "url":"https://api.deepseek.com" }, "xai": { "env
+3 user roha {"path":"C:/nitrologic/roha/notes.txt","length":24610,"type":"text/plain; charset=UTF-8"}
+4 user roha issue 1 Error during API call: Error: 400 The system message of deepseek-reasoner must be
+5 user roha {"path":"C:/nitrologic/roha/plan.txt","length":492,"type":"text/plain; charset=UTF-8"}
+6 user roha roha roadmap support functionless models saves should be annotable objects like tags serve
+7 user roha {"path":"C:/nitrologic/roha/README.md","length":500,"type":"text/markdown; charset=UTF-8"}
+8 user roha ![roha session](media/roha3.png) # roha a command line client to share folders and chat re
+9 user roha {"path":"C:/nitrologic/roha/roadmap.md","length":1619,"type":"text/markdown; charset=UTF-8
+10 user roha --- **Model-Agnostic Accounts** Decouple models from account specifics. New roha.accounts
+11 user roha {"path":"C:/nitrologic/roha/roha.js","length":23975,"type":"application/javascript; charse
+12 user roha // roha.js // a command line file sharing chat application // (c)2025 Simon Armstrong // d
+13 user roha {"path":"C:/nitrologic/roha/roha.json","length":3101,"type":"application/json; charset=UTF
+14 user roha { "config": { "commitonstart": true, "ansi": true, "slow": false, "verbose": false, "broke
+15 user roha {"path":"C:/nitrologic/roha/roha.md","length":1800,"type":"text/markdown; charset=UTF-8"}
+16 user roha # roha command line client A command line application designed to chat and share files. ##
+17 system guest Always use the name Simon to refer to user and not the term you.
+18 system guest Try to use brief answers, be mindful, and no unprompted code.
+19 system guest When posting code prefer small blocks with no comments.
+20 system guest User prefers discussing specific incremental changes over reading code.
+21 system guest Walls of text and unprompted code is not mindful technical discussion.
+22 system guest Confirm receipt of files when shared by the roha client.
+23 system guest Keep it cool and productive and helpful.
+24 system guest If a welcome.txt file is shared please comment if modifications detected.
+25 system guest If notes.txt or plan.txt file is modified please reflect.
+26 user roha {"path":"C:/nitrologic/roha/test.bat","length":67,"type":"application/x-msdownload"}
+27 user roha deno run --allow-env --allow-net --allow-read --allow-write roha.js
+28 user roha {"path":"C:/nitrologic/roha/test.sh","length":68,"type":"application/x-sh"}
+29 user roha deno run --allow-env --allow-net --allow-read --allow-write roha.js
+30 user roha {"path":"C:/nitrologic/roha/welcome.txt","length":529,"type":"text/plain; charset=UTF-8"}
+31 user roha  o---/\ /---o \---/ /---/\ o---/\ \---o /---/\ o---/\ /---o | \/ / | | / / \/ | \/ / | | \
+32 system guest Please annotate roha name undefined type tag /annotate_roha
+33 user guest hello
+34 assistant guest Hello Simon! How can I assist you today?
+35 user roha {"path":"C:/nitrologic/roha/roha.json","length":5846,"type":"application/json; charset=UTF
+36 user roha { "config": { "commitonstart": true, "ansi": true, "slow": false, "verbose": false, "broke
+37 user roha {"path":"C:/nitrologic/roha/roha.json","length":5846,"type":"application/json; charset=UTF
+38 user roha { "config": { "commitonstart": true, "ansi": true, "slow": false, "verbose": false, "broke
+39 system guest Please annotate roha name type tag /annotate_roha
+40 user guest Please review source for bugs and all content if notable changes detected, thanks.
+41 assistant guest Got it. Here's a quick summary of the files shared: 1. **accounts.json**: Contains API key
+42 system guest Please annotate roha name media type tag /annotate_roha
+43 user guest Please review source for bugs and all content if notable changes detected, thanks.
+44 assistant guest I've reviewed the shared files again, and here's what I've found: - **roha.js**: No new ch
+45 user guest i am worried file content is not correct in roha.js, i will test history command for clues
+46 assistant guest I understand your concern about `roha.js`. Let's check the history command to see if there
+>
+
+
 issue 1
 
 Error during API call: Error: 400 The system message of deepseek-reasoner 
