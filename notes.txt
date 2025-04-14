@@ -1,0 +1,23 @@
+current issue
+
+
+>hello
+>
+[relay model alert model:o3-mini-2025-01-31 grokModel:o3-mini@openai]
+[model o3-mini-2025-01-31 15064 148 15068 54211]
+Hello Simon, how can I help?
+
+>all good, just testing roha client
+>
+Error during API call: TypeError: Cannot read properties of undefined (reading 'chat')
+    at relay (file:///C:/nitrologic/roha/roha.js:991:37)
+    at chat (file:///C:/nitrologic/roha/roha.js:1100:11)
+    at eventLoopTick (ext:core/01_core.js:178:7)
+resetting grokFunctions
+>hmmm again?
+>
+Error during API call: TypeError: Cannot read properties of undefined (reading 'chat')
+    at relay (file:///C:/nitrologic/roha/roha.js:991:37)
+    at chat (file:///C:/nitrologic/roha/roha.js:1100:11)
+    at eventLoopTick (ext:core/01_core.js:178:7)
+>

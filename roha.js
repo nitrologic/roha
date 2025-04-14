@@ -13,10 +13,9 @@ const slowMillis = 20;
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
+const rohaTitle="foundry";
 
-const rohaTitle="nitrologic chat client";
-
-const rohaMihi="I am testing the roha chat client. You are a helpful assistant.";
+const rohaMihi="I am testing foundry a file sharing chat client. You are a helpful assistant.";
 
 const terminalColumns=120;
 
@@ -26,7 +25,8 @@ const flagNames={
 	slow : "output at reading speed",
 	verbose : "emit debug information",
 	broken : "ansi background blocks",
-	logging : "log all output to file"
+	logging : "log all output to file",
+	resetcounters : "at reset zero all counters"
 };
 
 const emptyRoha={
@@ -39,16 +39,45 @@ const emptyRoha={
 	},
 	tags:{},
 	models:{},
+	band:{},
 	sharedFiles:[],
 	saves:[],
 	counters:{}
 };
 
-function annotateSave(name,description){
-	let index=roha.sharedFiles.find(item => item.path === path);
-	if(index==-1) throw("save path not found");
+function addBand(){
+	let id="member"+increment("members");
+	roha.band[id]={};
+}
+
+function listBand(){
+	let band=[];
+	for(let id in roha.band){
+		let member=roha.band[id];
+		band.push(member);
+	}	
+	band.push("add");
+	for(let i=0;i<band.length;i++){
+		echo(i,band[i]);
+	}
+	memberList=band;
+}
+
+function annotateTag(name,description){
+	if(!name){
+		throw("null name");
+	}
+	if(!(name in roha.tags)) {
+		throw("tag not found "+name);
+	}
+	roha.tags[name].description=description;
+}
+
+function annotateShare(name,description){
+	let index=roha.sharedFiles.findIndex(item => item.id === name);
+	if(index==-1) throw("share id not found");
 	roha.sharedFiles[index].description=description;
-	echo("file description annotated");
+	echo("file share description annotated");
 }
 
 function increment(key){
@@ -63,6 +92,7 @@ function increment(key){
 var tagList=[];
 var modelList=[];
 var shareList=[];
+var memberList=[];
 
 const emptyModel={
 	name:"empty",account:"",hidden:false,prompts:0,completion:0
@@ -279,6 +309,7 @@ async function connectAccount(account) {
 async function resetModel(name){
 	grokModel=name;
 	grokFunctions=true;
+	rohaHistory.push({role:"system",content:"Model changed to "+name+"."});
 	echo("with model",name,grokFunctions)
 	await writeRoha();
 }
@@ -288,6 +319,7 @@ function listShares(){
 	for(let i=0;i<shares.length;i++){
 		let line=shares[i].path;
 		if(shares[i].tag)line+=" ["+shares[i].tag+"]";
+		if(shares[i].description) line+=" - "+shares[i].description;
 		echo(i,line);
 	}
 }
@@ -314,7 +346,7 @@ async function saveHistory(name) {
 	try {
 		let timestamp=Math.floor(Date.now()/1000).toString(16);
 		let filename=(name||".transmission-"+timestamp)+".json";
-		let line="roha chat history snapshot saved to "+filename;
+		let line="Saved roha chat history to "+filename+".";
 		rohaHistory.push({role:"system",content:line});
 		await Deno.writeTextFile(filename, JSON.stringify(rohaHistory,null,"\t"));
 		echo(line);
@@ -427,6 +459,7 @@ async function readRoha(){
 		roha = JSON.parse(fileContent);
 		if(!roha.saves) roha.saves=[];
 		if(!roha.counters) roha.counters={};
+		if(!roha.band) roha.band={};
 	} catch (error) {
 		console.error("Error reading or parsing roha.json:", error);
 		roha=emptyRoha;
@@ -446,7 +479,8 @@ async function resetRoha(){
 	rohaShares = [];
 	roha.sharedFiles=[];
 	roha.tags={};
-	roha.counters={};
+	if(roha.config.resetcounters) roha.counters={};
+	increment("resets");
 	await writeRoha();
 	resetHistory();
 	echo("resetRoha","All shares and history reset.");
@@ -485,6 +519,11 @@ async function prompt2(message) {
 				} else if (byte === 0x1b) { // Escape sequence
 					if(value.length==1){
 						Deno.exit(0);
+					}
+					if(value.length==3){
+						if(value[1]==0xf4 && value[2]==0x50){
+							echo("F1");
+						}
 					}
 					break;
 				} else if (byte === 0x0A || byte === 0x0D) { // Enter key
@@ -695,6 +734,9 @@ async function callCommand(command) {
 	let words = command.split(" ",2);
 	try {
 		switch (words[0]) {
+			case "band":
+				listBand();
+				break;
 			case "counter":
 				listCounters();
 				break;
@@ -896,11 +938,10 @@ async function onCall(toolCall) {
 				const { name, type, description } = JSON.parse(toolCall.function.arguments || "{}");
 				switch(type){
 					case "tag":
-						if(!(name in roha.tags)) throw("tag not found");
-						roha.tags[name].description=description;
+						annotateTag(name,description);
 						break;
-					case "save":
-						annotateSave(name,description);
+					case "share":
+						annotateShare(name,description);
 						break;
 				}
 				await writeRoha(); // Persist changes
@@ -964,6 +1005,7 @@ async function runCode(){
 }
 
 async function relay() {
+	const verbose=roha.config.verbose;
 	try {
 		const modelAccount=grokModel.split("@");
 		let model=modelAccount[0];
@@ -973,10 +1015,12 @@ async function relay() {
 		const completion = await endpoint.chat.completions.create(payload);
 		if (completion.model != model) {
 			echo("[relay model alert model:" + completion.model + " grokModel:" + grokModel + "]");
+			grokModel=completion.model+"@"+account;
 		}
-		if (roha.config.verbose) {
+		if (verbose) {
 			// echo("relay completion:" + JSON.stringify(completion, null, "\t"));
 		}
+		let system = completion.system_fingerprint;
 		let usage = completion.usage;
 		let size = measure(rohaHistory);
 		grokUsage += usage.prompt_tokens | 0 + usage.completion_tokens | 0;
@@ -985,6 +1029,7 @@ async function relay() {
 		var reply = "<blank>";
 		for (const choice of completion.choices) {
 			let calls = choice.message.tool_calls;
+			// choice has index message{role,content,refusal,annotations} finish_reason
 			if (calls) {
 				increment("calls");
 				echo("relay calls in progress");
@@ -998,11 +1043,9 @@ async function relay() {
 					}
 				}));
 				// Add assistant message with tool_calls
-				rohaHistory.push({
-					role: "assistant",
-					content: choice.message.content || "",
-					tool_calls: toolCalls
-				});
+				let content=choice.message.content || "";
+				rohaHistory.push({role:"assistant",content,tool_calls: toolCalls});
+				if(verbose) echo("tooling "+content);
 				// Add tool responses
 				for (let i = 0; i < calls.length; i++) {
 					const tool = calls[i];
@@ -1086,6 +1129,7 @@ async function chat() {
 
 Deno.addSignalListener("SIGINT", () => {Deno.exit(0);});
 
+Deno.addSignalListener("SIGBREAK", () => {echo("SIGBREAK");});
 
 await runCode("isolation/test.js","isolation");
 
