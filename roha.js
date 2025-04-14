@@ -13,50 +13,6 @@ const slowMillis = 20;
 const decoder = new TextDecoder("utf-8");
 const encoder = new TextEncoder();
 
-const reader = Deno.stdin.readable.getReader();
-const writer = Deno.stdout.writable.getWriter();
-
-async function prompt2(message) {
-	if (message) {
-		await writer.write(encoder.encode(message));
-		await writer.ready;
-	}
-	Deno.stdin.setRaw(true);
-	let inputBuffer = new Uint8Array(0);
-	try {
-		while (true) {
-			const { value, done } = await reader.read();
-			if (done || !value) break;
-			for (const byte of value) {
-				if (byte === 0x7F || byte === 0x08) { // Backspace
-					if (inputBuffer.length > 0) {
-						inputBuffer = inputBuffer.slice(0, -1);
-						await writer.write(new Uint8Array([0x08, 0x20, 0x08])); // Erase last char
-					}
-				} else if (byte === 0x1b) { // Escape sequence
-					if(value.length==1){
-						Deno.exit(0);
-					}
-					break;
-				} else if (byte === 0x0A || byte === 0x0D) { // Enter key
-					await writer.write(encoder.encode("\r\n"));
-					let line = decoder.decode(inputBuffer);
-					line=line.trim();
-					log(">>"+line);
-					return line;
-				} else {
-					await writer.write(new Uint8Array([byte]));
-					const buf = new Uint8Array(inputBuffer.length + 1);
-					buf.set(inputBuffer);
-					buf[inputBuffer.length] = byte;
-					inputBuffer = buf;
-				}
-			}
-		}
-	} finally {
-		Deno.stdin.setRaw(false);
-	}
-}
 
 const rohaTitle="nitrologic chat client";
 
@@ -87,6 +43,13 @@ const emptyRoha={
 	saves:[],
 	counters:{}
 };
+
+function annotateSave(name,description){
+	let index=roha.sharedFiles.find(item => item.path === path);
+	if(index==-1) throw("save path not found");
+	roha.sharedFiles[index].description=description;
+	echo("file description annotated");
+}
 
 function increment(key){
 	let i=0;
@@ -317,7 +280,7 @@ async function resetModel(name){
 	grokModel=name;
 	grokFunctions=true;
 	echo("with model",name,grokFunctions)
-	await writeRoha;
+	await writeRoha();
 }
 
 function listShares(){
@@ -489,17 +452,65 @@ async function resetRoha(){
 	echo("resetRoha","All shares and history reset.");
 }
 
-
 function resolvePath(dir,filename){
 	let path=resolve(dir,filename);
 	path = path.replace(/\\/g, "/");
 	return path;
 }
 
+// a raw mode prompt replacement 
+
+// arrow navigation and tab completion incoming
+
+const reader = Deno.stdin.readable.getReader();
+const writer = Deno.stdout.writable.getWriter();
+
+async function prompt2(message) {
+	if (message) {
+		await writer.write(encoder.encode(message));
+		await writer.ready;
+	}
+	Deno.stdin.setRaw(true);
+	let inputBuffer = new Uint8Array(0);
+	try {
+		while (true) {
+			const { value, done } = await reader.read();
+			if (done || !value) break;
+			for (const byte of value) {
+				if (byte === 0x7F || byte === 0x08) { // Backspace
+					if (inputBuffer.length > 0) {
+						inputBuffer = inputBuffer.slice(0, -1);
+						await writer.write(new Uint8Array([0x08, 0x20, 0x08])); // Erase last char
+					}
+				} else if (byte === 0x1b) { // Escape sequence
+					if(value.length==1){
+						Deno.exit(0);
+					}
+					break;
+				} else if (byte === 0x0A || byte === 0x0D) { // Enter key
+					await writer.write(encoder.encode("\r\n"));
+					let line = decoder.decode(inputBuffer);
+					line=line.trim();
+					log(">>"+line);
+					return line;
+				} else {
+					await writer.write(new Uint8Array([byte]));
+					const buf = new Uint8Array(inputBuffer.length + 1);
+					buf.set(inputBuffer);
+					buf[inputBuffer.length] = byte;
+					inputBuffer = buf;
+				}
+			}
+		}
+	} finally {
+		Deno.stdin.setRaw(false);
+	}
+}
+
 // callers to addShare expected to await writeRoha after
 
 async function addShare(share){
-	share.id="share"+increment("shareCount");
+	share.id="share"+increment("shares");
 	roha.sharedFiles.push(share);
 	if(share.tag) {
 		await setTag(share.tag,share.id);
@@ -585,7 +596,6 @@ async function commitShares(tag) {
 	let dirty = false;
 	const validShares = [];
 	const removedPaths = [];
-
 	for (const share of roha.sharedFiles) {
 		if (tag && share.tag !== tag) {
 			validShares.push(share);
@@ -610,11 +620,12 @@ async function commitShares(tag) {
 	if (removedPaths.length) {
 		roha.sharedFiles = validShares;
 		await writeRoha();
-		echo(`Removed invalid shares:\n${removedPaths.join('\n')}`);
+		echo(`Invalid shares detected:\n${removedPaths.join('\n')}`);
 	}
 
 	if (dirty) {
-		let invoke="Please annotate roha name "+tag+" type tag /annotate_roha";
+		// invoke an annotate_roha tool
+		let invoke="please annotate_roha tag "+tag;	
 		rohaHistory.push({role:"system",content:invoke});
 	}
 
@@ -742,6 +753,7 @@ async function callCommand(command) {
 					if(roha.saves.includes(save)){
 						let history=await loadHistory(save);
 						rohaHistory=history;
+						echo("a new history is set");
 					}
 				}else{
 					listSaves();
@@ -827,19 +839,21 @@ async function callCommand(command) {
 	} catch (error) {
 		echo("Error processing command:", error.message);
 	}
+	increment("calls");
 	return dirty;
 }
 
 echo(rohaTitle,"running from "+rohaPath);
 await readRoha();
-echo("shares count:",roha.sharedFiles.length)
-echo("use /help for latest");
 
 let grokModel = roha.model||"deepseek-chat@deepseek";
 let grokFunctions=true;
 let grokUsage = 0;
 
-echo("prompting with ",grokModel);
+echo("present [",grokModel,"]");
+echo("shares count:",roha.sharedFiles.length)
+echo("use /help for latest");
+echo("");
 
 let sessions=increment("sessions");
 if(sessions==0){
@@ -886,8 +900,7 @@ async function onCall(toolCall) {
 						roha.tags[name].description=description;
 						break;
 					case "save":
-						if(!(name in roha.saves)) throw("save not found");
-						roha.saves[name].description=description;
+						annotateSave(name,description);
 						break;
 				}
 				await writeRoha(); // Persist changes
@@ -973,6 +986,7 @@ async function relay() {
 		for (const choice of completion.choices) {
 			let calls = choice.message.tool_calls;
 			if (calls) {
+				increment("calls");
 				echo("relay calls in progress");
 				// Generate tool_calls with simple, unique IDs
 				const toolCalls = calls.map((tool, index) => ({

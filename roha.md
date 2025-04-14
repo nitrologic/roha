@@ -10,6 +10,9 @@ See the OpenAI API spec for more details.
 
 ### read_time
 
+### submit_file
+
+### annotate_roha
 
 ## roha user interface
 
