@@ -113,9 +113,6 @@ let rohaCalls=0;
 let listCommand="";
 let rohaShares=[];
 let currentDir = Deno.cwd();
-
-// roaHistory
-
 var rohaHistory;
 
 function resetHistory(){
@@ -856,17 +853,19 @@ if(roha.config){
 }
 
 function extensionForType(contentType) {
-    if (contentType.includes("markdown")) return ".md";
-    if (contentType.includes("json")) return ".json";
-    return ".txt";
-  }
+	if (contentType.includes("markdown")) return ".md";
+	if (contentType.includes("json")) return ".json";
+	if (contentType.includes("javascript")) return ".js";
+	return ".txt";
+}
 
 async function onCall(toolCall) {
+	let verbose=roha.config.verbose;
 	switch(toolCall.function.name) {
 		case "submit_file":
 			let args=JSON.parse(toolCall.function.arguments);
 			echo(args.contentType);
-			echo(args.content);
+			if (verbose) echo(args.content);
 			let timestamp=Math.floor(Date.now()/1000).toString(16);
 			let extension=extensionForType(args.contentType)
 			let name= "submission-"+timestamp+extension;
