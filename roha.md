@@ -4,19 +4,54 @@ A command line application designed to chat and share files.
 
 ## roha Commands
 
-### /help
-
-Read this file.
-
-### /tag
-
-Describe all tags in use.
-
-### /account
-
-Display current account information.
-
 ### /list
+
+Display all shared files.
+
+Includes paths, sizes, and optional tags for each file.
+
+### /share
+
+Share a file or folder with optional tag.
+
+Files are added to the share list used by the /dump /commit /roha command.
+
+### /dump /commit /roha
+
+Refresh shared files. 
+
+Detects changes or deletions and updates the chat history.
+
+Posts new versions of file content if modified.
+
+### /reset
+
+Clear all shared files and conversation history.
+
+### /config
+
+Toggle configuration flags (like ANSI rendering or auto-dump on start).
+
+Adjust settings to suit current preferences.
+
+### /history
+
+List a summary of recent conversation entries. 
+
+Provides a quick overview of chat history.
+
+### /cd
+
+Change the working directory. 
+
+User can navigate to a desired directory for file operations.
+
+### /dir
+
+List the contents of the current working directory. 
+
+Helps user view available files and folders to share.
+
 
 ### /model
 
@@ -24,19 +59,15 @@ Select an AI model.
 
 User can choose a model by name or index from the accounts available.
 
-### /share
+### /tag
 
-Share a file or folder. User prompted for tag to categorize the shared item.
+Describe all tags in use.
 
-### /dump /commit /roha
+Displays tag name, count of shares tagged and description.
 
-Refresh shared files. 
+### /account
 
-This command checks for any updates or modifications and resends the share if needed.
-
-### /reset
-
-Clear all shared files and conversation history.
+Display current account information.
 
 ### /load
 
@@ -46,26 +77,18 @@ User can specify a save index or file name to restore previous chats.
 
 ### /save
 
-Save the current conversation history. Creates a snapshot file of the conversation.
+Save the current conversation history. 
 
-### /config
-
-Toggle configuration flags (like ANSI rendering or auto-dump on start).
-
-Adjust settings to suit current preferences.
+Creates a snapshot file of the conversation.
 
 ### /time
 
-Display the current system time. Helps User verify system status.
+Display the current system time. 
 
-### /history
+Helps user verify system status.
 
-List a summary of recent conversation entries. Provides a quick overview of chat history.
+### /help
 
-### /cd
+If you are reading this file, it may be due to the use of this command.
 
-Change the working directory. User can navigate to a desired directory for file operations.
-
-### /dir
-
-List the contents of the current working directory. Helps user view available files and folders to share.
+If you still need help visit the project page.

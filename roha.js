@@ -33,14 +33,23 @@ const emptyRoha={
 	},
 	tags:{},
 	models:{},
-	saves:{},
 	shares:{},
-	sharedFiles:[]
+	sharedFiles:[],
+	saves:[],
+	counters:{}
 };
+
+function increment(key){
+	let i=0;
+	if(key in roha.counters){
+		i=roha.counters[key]+1;
+	}
+	roha.counters[key]=i;
+	return i
+}
 
 var tagList=[];
 var modelList=[];
-var saveList=[];
 var shareList=[];
 
 const emptyModel={
@@ -386,6 +395,7 @@ async function readRoha(){
 		const fileContent = await Deno.readTextFile(rohaPath);
 		roha = JSON.parse(fileContent);
 		if(!roha.saves) roha.saves=[];
+		if(!roha.counters) roha.counters={};
 	} catch (error) {
 		console.error("Error reading or parsing roha.json:", error);
 		roha=emptyRoha;
@@ -417,12 +427,10 @@ function resolvePath(dir,filename){
 	return path;
 }
 
-let shareCount=0;
-
 // callers to addShare expected to await writeRoha after
 
 async function addShare(share){
-	share.id="share"+(shareCount++);
+	share.id="share"+increment("shareCount");
 	roha.sharedFiles.push(share);
 	if(share.tag) {
 		await setTag(share.tag,share.id);
@@ -551,7 +559,8 @@ async function setTag(name,note){
 	tags[name]=tag;
 	roha.tags=tags;
 	await writeRoha();
-	rohaHistory.push({role:"system",name:"roha",content: `New tag "${name}" added. Describe all shares with this tag.`});
+//	let invoke=`New tag "${name}" added. Describe all shares with this tag.`;
+//	rohaHistory.push({role:"system",name:"roha",content:invoke});
 }
 
 function listTags(){
@@ -589,8 +598,9 @@ async function showHelp() {
 	}
 }
 
-function flatten(text){
-	return text.replace(/\n/g, " ");
+function readable(text){
+	text=text.replace(/\s+/g, " ");
+	return text;
 }
 
 async function callCommand(command) {
@@ -635,7 +645,7 @@ async function callCommand(command) {
 				let n=history.length;
 				for(let i=0;i<n;i++){
 					let item=history[i];
-					let content=flatten(history[i].content).substring(0,90);
+					let content=readable(item.content).substring(0,90)
 					echo(i,item.role,item.name||"guest",content);
 				}
 				break;
