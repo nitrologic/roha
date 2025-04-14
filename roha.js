@@ -125,8 +125,8 @@ const rohaTools = [{
 	}
 }];
 
-function sleep(ms) {
-	return new Promise(function(resolve) {setTimeout(resolve, ms);});
+async function sleep(ms) {
+	await new Promise(function(resolve) {setTimeout(resolve, ms);});
 }
 
 function measure(o){
@@ -145,7 +145,7 @@ function echo(){
 }
 
 async function flush() {
-	const delay = roha.config.slow ? 100 : 0;
+	const delay = roha.config.slow ? 40 : 0;
 	for (const line of outputBuffer) {
 		console.log(line);
 		await sleep(delay);
@@ -198,6 +198,7 @@ for(let account in modelAccounts){
 }
 
 let grokModel = roha.model||"deepseek-chat@deepseek";
+let grokFunctions=true;
 let grokUsage = 0;
 echo("prompting with ",grokModel);
 
@@ -248,7 +249,8 @@ async function connectAccount(account) {
 
 async function resetModel(name){
 	grokModel=name;
-	echo("using model",name)
+	grokFunctions=true;
+	echo("using model",name,grokFunctions)
 	await writeRoha;
 }
 
@@ -799,7 +801,7 @@ async function relay() {
 		let model=modelAccount[0];
 		let account=modelAccount[1];
 		let endpoint=rohaAccount[account];
-		const payload = { model, messages: rohaHistory, tools: rohaTools };
+		const payload = grokFunctions?{ model, messages: rohaHistory, tools: rohaTools }:{ model, messages: rohaHistory };
 		const completion = await endpoint.chat.completions.create(payload);
 		if (completion.model != model) {
 			echo("[relay model alert model:" + completion.model + " grokModel:" + grokModel + "]");
@@ -861,7 +863,12 @@ async function relay() {
 		}
 		rohaHistory.push({ role: "assistant", content: reply });
 	} catch (error) {
-		console.error("Error during API call:", error);
+		if(grokFunctions){
+			echo("resetting grokFunctions")
+			grokFunctions=false;
+		}else{
+			console.error("Error during API call:", error);
+		}
 	}
 }
 
@@ -869,7 +876,6 @@ async function chat() {
 	dance:
 	while (true) {
 		let lines=[];
-		await sleep(800);
 		echo(ansiMoveToEnd);
 		while (true) {
 			await flush();

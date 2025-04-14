@@ -1,3 +1,69 @@
+issue 1
+
+handle models that dont support function calling
+test with other accounts
+
+using model deepseek-reasoner@deepseek
+> again
+>
+Error during API call: Error: 400 deepseek-reasoner does not support Function Calling
+    at APIError.generate (https://deno.land/x/openai@v4.67.2/error.ts:77:14)
+    at OpenAI.makeStatusError (https://deno.land/x/openai@v4.67.2/core.ts:498:21)
+    at OpenAI.makeRequest (https://deno.land/x/openai@v4.67.2/core.ts:580:24)
+    at eventLoopTick (ext:core/01_core.js:178:7)
+    at async relay (file:///C:/nitrologic/roha/roha.js:803:22)
+    at async chat (file:///C:/nitrologic/roha/roha.js:907:5) {
+  status: 400,
+
+issue 2
+
+args 0 of application appearing in history, see deno run lines
+
+> /history
+0 system roha I am testing the roha chat client. You are a helpful assistant.
+1 user roha {"path":"C:/nitrologic/roha/accounts.json","length":250,"type":"application/json; charset=
+2 user roha { "deepseek":{ "env":"DEEPSEEK_API_KEY", "url":"https://api.deepseek.com" }, "xai": { "env
+3 user roha {"path":"C:/nitrologic/roha/notes.txt","length":19751,"type":"text/plain; charset=UTF-8"}
+4 user roha history is all fixed tests pass! 0 system roha I am testing the roha chat client. You are
+5 user roha {"path":"C:/nitrologic/roha/plan.txt","length":463,"type":"text/plain; charset=UTF-8"}
+6 user roha roha roadmap saves should be annotable objects like tags server sandbox with steam api aut
+7 user roha {"path":"C:/nitrologic/roha/README.md","length":500,"type":"text/markdown; charset=UTF-8"}
+8 user roha ![roha session](media/roha3.png) # roha a command line client to share folders and chat re
+9 user roha {"path":"C:/nitrologic/roha/roadmap.md","length":1619,"type":"text/markdown; charset=UTF-8
+10 user roha --- **Model-Agnostic Accounts** Decouple models from account specifics. New roha.accounts
+11 user roha {"path":"C:/nitrologic/roha/roha.js","length":22756,"type":"application/javascript; charse
+12 user roha // roha.js // a command line file sharing chat application // (c)2025 Simon Armstrong // d
+13 user roha {"path":"C:/nitrologic/roha/roha.json","length":3437,"type":"application/json; charset=UTF
+14 user roha { "saves": [ ".roha-save-67f99001.json", ".roha-save-67f9901f.json", ".roha-save-67f9c1fd.
+15 user roha {"path":"C:/nitrologic/roha/roha.md","length":1800,"type":"text/markdown; charset=UTF-8"}
+16 user roha # roha command line client A command line application designed to chat and share files. ##
+17 system roha.rule Always use the name Simon to refer to user and not the term you.
+18 system roha.rule Try to use brief answers, be mindful, and no unprompted code.
+19 system roha.rule When posting code prefer small blocks with no comments.
+20 system roha.rule User prefers discussing specific incremental changes over reading code.
+21 system roha.rule Walls of text and unprompted code is not mindful technical discussion.
+22 system roha.rule Confirm receipt of files when shared by the roha client.
+23 system roha.rule Keep it cool and productive and helpful.
+24 system roha.rule If a welcome.txt file is shared please comment if modifications detected.
+25 system roha.rule If notes.txt or plan.txt file is modified please reflect.
+26 user roha {"path":"C:/nitrologic/roha/test.bat","length":67,"type":"application/x-msdownload"}
+27 user roha deno run --allow-env --allow-net --allow-read --allow-write roha.js
+28 user roha {"path":"C:/nitrologic/roha/test.sh","length":68,"type":"application/x-sh"}
+29 user roha deno run --allow-env --allow-net --allow-read --allow-write roha.js
+30 user roha {"path":"C:/nitrologic/roha/welcome.txt","length":529,"type":"text/plain; charset=UTF-8"}
+31 user roha  o---/\ /---o \---/ /---/\ o---/\ \---o /---/\ o---/\ /---o | \/ / | | / / \/ | \/ / | | \
+32 system roha Please annotate roha name undefined type tag /annotate_roha
+33 user roha {"path":"C:/nitrologic/roha/roha.json","length":4208,"type":"application/json; charset=UTF
+34 user roha { "saves": [ ".roha-save-67f99001.json", ".roha-save-67f9901f.json", ".roha-save-67f9c1fd.
+35 system roha Please annotate roha name type tag /annotate_roha
+36 user guest Please review source for bugs and all content if notable changes detected, thanks.
+37 assistant guest Got it. Here's a quick summary of the files shared: 1. **accounts.json**: Contains API key
+> /save
+history snapshot saved to .roha-save-67fc558b.json
+>
+
+
+
 history is all fixed tests pass!
 
 0 system roha I am testing the roha chat client. You are a helpful assistant.
