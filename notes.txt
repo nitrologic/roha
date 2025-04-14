@@ -1,3 +1,18 @@
+Current topic
+
+escape key needs timeout
+
+async function readWithTimeout(reader, timeoutMs = 100) {                                                                   
+  return await Promise.race([                                                                                               
+    reader.read(),                                                                                                          
+    new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs)),                                                   
+  ]);                                                                                                                       
+}                                                                                                                           
+
+But `AbortController` is preferred for proper cleanup.                                                                      
+
+• --
+
 up - "\033[A"
 down - "\033[B"
 left - "\033[D"

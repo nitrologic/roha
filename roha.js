@@ -5,7 +5,6 @@
 // deno run --allow-env --allow-net --allow-read --allow-write roha.js
 
 import { contentType } from "https://deno.land/std@0.224.0/media_types/mod.ts";
-import { exists } from "https://deno.land/std/fs/exists.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import OpenAI from "https://deno.land/x/openai@v4.67.2/mod.ts";
 
@@ -15,32 +14,31 @@ const encoder = new TextEncoder();
 const reader = Deno.stdin.readable.getReader();
 const writer = Deno.stdout.writable.getWriter();
 
-let inputBuffer = new Uint8Array(0);
-
 async function prompt2(message) {
 	if (message) {
 		await writer.write(encoder.encode(message));
 		await writer.ready;
 	}
 	Deno.stdin.setRaw(true);
+	let inputBuffer = new Uint8Array(0);
 	try {
 		while (true) {
 			const { value, done } = await reader.read();
 			if (done || !value) break;
-			let byte0=0;
 			for (const byte of value) {
 				if (byte === 0x7F || byte === 0x08) { // Backspace
 					if (inputBuffer.length > 0) {
 						inputBuffer = inputBuffer.slice(0, -1);
 						await writer.write(new Uint8Array([0x08, 0x20, 0x08])); // Erase last char
 					}
-				} else if (byte0 === 0x1b) { // Escape sequence
-					console.log(byte);// up down left right A B C D but not escape
-//					Deno.exit(0);
+				} else if (byte === 0x1b) { // Escape sequence
+					if(value.length==1){
+						Deno.exit(0);
+					}
+					break;
 				} else if (byte === 0x0A || byte === 0x0D) { // Enter key
 					const line = decoder.decode(inputBuffer);
 					await writer.write(encoder.encode("\r\n"));
-					inputBuffer = new Uint8Array(0);
 					return line.trim();
 				} else {
 					await writer.write(new Uint8Array([byte]));
@@ -49,13 +47,14 @@ async function prompt2(message) {
 					buf[inputBuffer.length] = byte;
 					inputBuffer = buf;
 				}
-				byte0=byte;
 			}
 		}
 	} finally {
 		Deno.stdin.setRaw(false);
 	}
 }
+
+// not raw version
 
 async function prompt2b(message) {
 	if(message) {
@@ -258,7 +257,20 @@ const cachePath=resolve(appDir,"cache");
 
 const modelAccounts = JSON.parse(await Deno.readTextFile(accountsPath));
 
-const fileExists = await exists(rohaPath);
+
+async function pathExists(path) {
+	try {
+		const stat = await Deno.stat(path);
+		if (!stat.isFile) return false;
+		return true;
+	} catch (error) {
+		if (error instanceof Deno.errors.NotFound) return false;
+		if (error instanceof Deno.errors.PermissionDenied) return false;
+		throw error;
+	}
+}
+
+const fileExists = await pathExists(rohaPath);
 if (!fileExists) {
 	await Deno.writeTextFile(rohaPath, JSON.stringify(emptyRoha));
 	echo("Created a new roha.json");
