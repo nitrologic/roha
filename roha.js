@@ -923,6 +923,33 @@ function squashMessages(history) {
 	return squashed;
 }
 
+async function isolateCode(path,cwd) {
+	try {
+		const readAllow = `--allow-read=${cwd}`;
+		const writeAllow = `--allow-write=${cwd}`;
+		const cmd = ["deno", "run", "--no-remote", readAllow, writeAllow, path];
+		const process = Deno.run({ cmd, stdout: "piped", stderr: "piped" });
+		const [stdout, stderr] = await Promise.all([process.output(), process.stderrOutput()]);
+		const status = await process.status();
+		process.close();
+		return {
+			success: status.success,
+			output: new TextDecoder().decode(stdout),
+			error: new TextDecoder().decode(stderr)
+		};
+	} catch (err) {
+		return { success: false, output: "", error: err.message };
+	}
+}
+
+async function runCode(){
+	let result = await isolateCode("isolation/test.js", "isolation");
+	//echo("RunCode Result:", result.success ? "Success" : "Failed");
+	if (result.output) echo("[isolation] ", result.output);
+	if (result.error) echo("Error:", result.error);
+	// todo: add save on exit
+}
+
 async function relay() {
 	try {
 		const modelAccount=grokModel.split("@");
@@ -1043,35 +1070,9 @@ async function chat() {
 	}
 }
 
-
-async function runCode(path,cwd) {
-	try {
-		const readAllow = `--allow-read=${cwd}`;
-		const writeAllow = `--allow-write=${cwd}`;
-		const cmd = ["deno", "run", "--no-remote", readAllow, writeAllow, path];
-		const process = Deno.run({ cmd, stdout: "piped", stderr: "piped" });
-		const [stdout, stderr] = await Promise.all([process.output(), process.stderrOutput()]);
-		const status = await process.status();
-		process.close();
-		return {
-			success: status.success,
-			output: new TextDecoder().decode(stdout),
-			error: new TextDecoder().decode(stderr)
-		};
-	} catch (err) {
-		return { success: false, output: "", error: err.message };
-	}
-}
-
-
-//await runCode("isolation/test.js","isolation");
-
-let result = await runCode("isolation/test.js", "isolation");
-echo("RunCode Result:", result.success ? "Success" : "Failed");
-if (result.output) echo("[isolation] ", result.output);
-if (result.error) echo("Error:", result.error);
-// todo: add save on exit
-
 Deno.addSignalListener("SIGINT", () => {Deno.exit(0);});
+
+
+await runCode("isolation/test.js","isolation");
 
 chat();
