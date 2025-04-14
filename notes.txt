@@ -1,5 +1,18 @@
 issue 1
 
+Error during API call: Error: 400 The system message of deepseek-reasoner 
+must be put on the beginning of the message sequence.
+
+issue 2 (fixed)
+
+> hello
+>
+Error during API call: Error: 400 deepseek-reasoner does not support successive user or 
+assistant messages (messages[1] and messages[2] in your input). You should interleave 
+the user/assistant messages in the message sequence.
+
+issue 3 (fixed)
+
 handle models that dont support function calling
 test with other accounts
 
@@ -15,7 +28,7 @@ Error during API call: Error: 400 deepseek-reasoner does not support Function Ca
     at async chat (file:///C:/nitrologic/roha/roha.js:907:5) {
   status: 400,
 
-issue 2
+issue 4 - retest
 
 args 0 of application appearing in history, see deno run lines
 

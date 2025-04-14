@@ -200,6 +200,7 @@ for(let account in modelAccounts){
 let grokModel = roha.model||"deepseek-chat@deepseek";
 let grokFunctions=true;
 let grokUsage = 0;
+
 echo("prompting with ",grokModel);
 
 function stringify(value, seen = new WeakSet(), keyName = "") {
@@ -417,6 +418,7 @@ async function resetRoha(){
 	rohaShares = [];
 	roha.sharedFiles=[];
 	roha.tags={};
+	roha.counters={};
 	await writeRoha();
 	resetHistory();
 	echo("resetRoha","All shares and history reset.");
@@ -564,7 +566,14 @@ async function setTag(name,note){
 //	let invoke=`New tag "${name}" added. Describe all shares with this tag.`;
 //	rohaHistory.push({role:"system",name:"roha",content:invoke});
 }
-
+function listCounts(){
+	let keys=Object.keys(roha.counters);
+	let i=0;
+	for(let key of keys){
+		let count=roha.counters[key];
+		echo((i++),key,count);
+	}
+}
 function listTags(){
 	let tags=roha.tags||{};
 	let keys=Object.keys(tags);
@@ -610,6 +619,9 @@ async function callCommand(command) {
 	let words = command.split(" ",2);
 	try {
 		switch (words[0]) {
+			case "count":
+				listCounts();
+				break;
 			case "tag":
 				await listTags();
 				break;
@@ -644,11 +656,18 @@ async function callCommand(command) {
 				break;
 			case "history":
 				let history=rohaHistory;
-				let n=history.length;
-				for(let i=0;i<n;i++){
+				for(let i=0;i<history.length;i++){
 					let item=history[i];
 					let content=readable(item.content).substring(0,90)
 					echo(i,item.role,item.name||"guest",content);
+				}
+				if(roha.config.broken){
+					let flat=squashMessages(rohaHistory);
+					for(let i=0;i<flat.length;i++){
+						let item=flat[i];
+						let content=readable(item.content).substring(0,90);
+						echo("flat",i,item.role,item.name||"guest",content);
+					}
 				}
 				break;
 			case "load":
@@ -743,14 +762,17 @@ async function callCommand(command) {
 	return dirty;
 }
 
-echo(rohaTitle);
-
-//echo("connected to "+grok.baseURL);
-
-echo("running from "+rohaPath);
+echo(rohaTitle,"running from "+rohaPath,"use /help for latest");
 
 await readRoha();
 echo("shares count:",roha.sharedFiles.length)
+
+let sessions=increment("sessions");
+if(sessions==0){
+	let welcome=await Deno.readTextFile("welcome.txt");
+	echo(welcome);
+	await writeRoha();
+}
 
 if(roha.config){
 	if(roha.config.commitonstart) await commitShares();
@@ -795,13 +817,36 @@ async function onCall(toolCall) {
 	console.error("onCall error - call simon");
 }
 
+function squashMessages(history) {
+	if (history.length < 2) return history;
+	const squashed = [history[0]];
+	let system=[];
+	let other=[];
+	for(let item of history){
+		if(item.role=="system") system.push(item); else other.push(item);
+	}
+	for(let list of [system,other]){
+		let last=null;
+		for (let i = 0; i < list.length; i++) {
+			const current=list[i];
+			if(last){
+				last.content += "\n" + current.content;
+			} else {
+				squashed.push(current);
+				last=current;
+			}
+		}
+	}	
+	return squashed;
+}
+
 async function relay() {
 	try {
 		const modelAccount=grokModel.split("@");
 		let model=modelAccount[0];
 		let account=modelAccount[1];
 		let endpoint=rohaAccount[account];
-		const payload = grokFunctions?{ model, messages: rohaHistory, tools: rohaTools }:{ model, messages: rohaHistory };
+		const payload = grokFunctions?{ model, messages:rohaHistory, tools: rohaTools }:{ model, messages:squashMessages(rohaHistory) };
 		const completion = await endpoint.chat.completions.create(payload);
 		if (completion.model != model) {
 			echo("[relay model alert model:" + completion.model + " grokModel:" + grokModel + "]");
@@ -863,11 +908,10 @@ async function relay() {
 		}
 		rohaHistory.push({ role: "assistant", content: reply });
 	} catch (error) {
+		console.error("Error during API call:", error);
 		if(grokFunctions){
 			echo("resetting grokFunctions")
 			grokFunctions=false;
-		}else{
-			console.error("Error during API call:", error);
 		}
 	}
 }
