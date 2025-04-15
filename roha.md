@@ -1,4 +1,46 @@
-# roha command line client
+# latest
+
+the roa command line project has released the foundry research tool
+
+![foundry reasearch](https://foundry.skid.nz)
+
+![roha session](media/roha4.png)
+
+## original roha project
+
+a command line client to share folders and chat
+
+requires XAI_API_KEY DEEPSEEK_API_KEY or OPENAI_API_KEY environment variable to run
+
+### interface
+
+[model modelname promptTokens replyTokens totalTokens contextSize]
+
+### commands
+
+/model [id]
+
+/share [folder]
+
+/dump
+
+/reset
+
+### work in progress
+
+/load
+
+/save
+
+### reference
+
+More command documentation [roha.md](roha.md)
+
+### development
+
+https://github.com/nitrologic/foundry
+
+# introduction
 
 A command line application designed to chat and share files.
 
